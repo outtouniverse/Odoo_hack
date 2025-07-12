@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { User, Mail, MapPin, Plus, X, Camera, Globe, Lock, Clock, Save } from 'lucide-react';
 import SkillTag from '../components/SkillTag';
+import { apiService } from '../services/api';
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -15,11 +16,16 @@ const ProfilePage: React.FC = () => {
     email: user?.email || '',
     location: user?.location || '',
     profilePhoto: user?.profilePhoto || '',
-    skillsOffered: user?.skillsOffered || [],
-    skillsWanted: user?.skillsWanted || [],
-    availability: user?.availability || [],
+    skillsOffered: [] as any[],
+    skillsWanted: [] as any[],
+    availability: [] as string[],
     isPublic: user?.isPublic ?? true
   });
+
+  // State for skills from database
+  const [skillsOffered, setSkillsOffered] = useState<any[]>([]);
+  const [skillsWanted, setSkillsWanted] = useState<any[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(false);
 
   const [newSkillOffered, setNewSkillOffered] = useState('');
   const [newSkillWanted, setNewSkillWanted] = useState('');
@@ -42,8 +48,27 @@ const ProfilePage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      updateUser(formData);
+      // Prepare the data to save
+      const profileData = {
+        name: formData.name,
+        location: formData.location,
+        profilePhoto: formData.profilePhoto,
+        availability: formData.availability.join(', '), // Convert array to string
+        isPublic: formData.isPublic
+      };
+
+      // Update user profile in database
+      const updatedUser = await apiService.updateUser(user.id, profileData);
+      
+      // Update the user context
+      updateUser(updatedUser);
+      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       
@@ -54,61 +79,165 @@ const ProfilePage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to update profile:', error);
+      alert('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const addSkillOffered = () => {
-    if (newSkillOffered.trim() && !formData.skillsOffered.includes(newSkillOffered.trim())) {
-      setFormData({
-        ...formData,
-        skillsOffered: [...formData.skillsOffered, newSkillOffered.trim()]
-      });
-      setNewSkillOffered('');
+  const addSkillOffered = async () => {
+    if (newSkillOffered.trim() && !skillsOffered.some((skill: any) => skill.name === newSkillOffered.trim())) {
+      try {
+        // Create the skill in database
+        const skill = await apiService.createSkill({
+          name: newSkillOffered.trim(),
+          description: `I can teach ${newSkillOffered.trim()}`,
+          type: 'offered'
+        });
+
+        // Refresh skills from database
+        await fetchUserSkills();
+        setNewSkillOffered('');
+      } catch (error: any) {
+        console.error('Failed to add skill:', error);
+        alert(`Failed to add skill: ${error.message}`);
+      }
     }
   };
 
-  const addSkillWanted = () => {
-    if (newSkillWanted.trim() && !formData.skillsWanted.includes(newSkillWanted.trim())) {
-      setFormData({
-        ...formData,
-        skillsWanted: [...formData.skillsWanted, newSkillWanted.trim()]
-      });
-      setNewSkillWanted('');
+  const addSkillWanted = async () => {
+    if (newSkillWanted.trim() && !skillsWanted.some((skill: any) => skill.name === newSkillWanted.trim())) {
+      try {
+        // Create the skill in database
+        const skill = await apiService.createSkill({
+          name: newSkillWanted.trim(),
+          description: `I want to learn ${newSkillWanted.trim()}`,
+          type: 'wanted'
+        });
+
+        // Refresh skills from database
+        await fetchUserSkills();
+        setNewSkillWanted('');
+      } catch (error: any) {
+        console.error('Failed to add skill:', error);
+        alert(`Failed to add skill: ${error.message}`);
+      }
     }
   };
 
-  const addAvailability = () => {
+  const addAvailability = async () => {
     if (newAvailability && !formData.availability.includes(newAvailability)) {
-      setFormData({
-        ...formData,
-        availability: [...formData.availability, newAvailability]
-      });
-      setNewAvailability('');
+      try {
+        const updatedAvailability = [...formData.availability, newAvailability];
+        
+        // Update availability in database
+        if (user) {
+          await apiService.updateUser(user.id, {
+            availability: updatedAvailability.join(', ')
+          });
+        }
+        
+        setFormData({
+          ...formData,
+          availability: updatedAvailability
+        });
+        setNewAvailability('');
+      } catch (error: any) {
+        console.error('Failed to add availability:', error);
+        alert(`Failed to add availability: ${error.message}`);
+      }
     }
   };
 
-  const removeSkillOffered = (skill: string) => {
-    setFormData({
-      ...formData,
-      skillsOffered: formData.skillsOffered.filter(s => s !== skill)
-    });
+  const removeSkillOffered = async (skill: any) => {
+    try {
+      // Remove from database
+      await apiService.deleteSkill(skill._id);
+      
+      // Refresh skills from database
+      await fetchUserSkills();
+    } catch (error: any) {
+      console.error('Failed to remove skill:', error);
+      alert(`Failed to remove skill: ${error.message}`);
+    }
   };
 
-  const removeSkillWanted = (skill: string) => {
-    setFormData({
-      ...formData,
-      skillsWanted: formData.skillsWanted.filter(s => s !== skill)
-    });
+  const removeSkillWanted = async (skill: any) => {
+    try {
+      // Remove from database
+      await apiService.deleteSkill(skill._id);
+      
+      // Refresh skills from database
+      await fetchUserSkills();
+    } catch (error: any) {
+      console.error('Failed to remove skill:', error);
+      alert(`Failed to remove skill: ${error.message}`);
+    }
   };
 
-  const removeAvailability = (availability: string) => {
-    setFormData({
-      ...formData,
-      availability: formData.availability.filter(a => a !== availability)
-    });
+  const removeAvailability = async (availability: string) => {
+    try {
+      const updatedAvailability = formData.availability.filter(a => a !== availability);
+      
+      // Update availability in database
+      if (user) {
+        await apiService.updateUser(user.id, {
+          availability: updatedAvailability.join(', ')
+        });
+      }
+      
+      setFormData({
+        ...formData,
+        availability: updatedAvailability
+      });
+    } catch (error: any) {
+      console.error('Failed to remove availability:', error);
+      alert(`Failed to remove availability: ${error.message}`);
+    }
   };
+
+  // Fetch skills from database
+  const fetchUserSkills = async () => {
+    if (!user) return;
+    
+    setLoadingSkills(true);
+    try {
+      console.log('Fetching skills for current user');
+      // Fetch skills for current authenticated user
+      const userSkills = await apiService.getMySkills();
+      console.log('Fetched skills:', userSkills);
+      
+      // Filter skills by type
+      const userOfferedSkills = userSkills.filter((skill: any) => skill.type === 'offered');
+      const userWantedSkills = userSkills.filter((skill: any) => skill.type === 'wanted');
+      
+      console.log('Offered skills:', userOfferedSkills);
+      console.log('Wanted skills:', userWantedSkills);
+      
+      setSkillsOffered(userOfferedSkills);
+      setSkillsWanted(userWantedSkills);
+    } catch (error) {
+      console.error('Failed to fetch skills:', error);
+    } finally {
+      setLoadingSkills(false);
+    }
+  };
+
+  // Load skills and availability when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      fetchUserSkills();
+      
+      // Load availability from user data
+      if (user.availability) {
+        const availabilityArray = user.availability.split(', ').filter((item: string) => item.trim() !== '');
+        setFormData(prev => ({
+          ...prev,
+          availability: availabilityArray
+        }));
+      }
+    }
+  }, [user]);
 
   if (!user) return null;
 
@@ -253,14 +382,20 @@ const ProfilePage: React.FC = () => {
               </h2>
 
               <div className="flex flex-wrap gap-2 mb-4">
-                {formData.skillsOffered.map((skill, index) => (
-                  <SkillTag
-                    key={index}
-                    skill={skill}
-                    variant="offered"
-                    onRemove={() => removeSkillOffered(skill)}
-                  />
-                ))}
+                {loadingSkills ? (
+                  <div className="text-gray-500">Loading skills...</div>
+                ) : skillsOffered.length > 0 ? (
+                  skillsOffered.map((skill: any) => (
+                    <SkillTag
+                      key={skill._id}
+                      skill={skill.name}
+                      variant="offered"
+                      onRemove={() => removeSkillOffered(skill)}
+                    />
+                  ))
+                ) : (
+                  <div className="text-gray-500">No skills offered yet</div>
+                )}
               </div>
 
               <div className="flex gap-2">
@@ -274,7 +409,7 @@ const ProfilePage: React.FC = () => {
                 />
                 <button
                   type="button"
-                  onClick={addSkillOffered}
+                  onClick={() => addSkillOffered()}
                   className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                 >
                   <Plus className="h-5 w-5" />
@@ -289,14 +424,20 @@ const ProfilePage: React.FC = () => {
               </h2>
 
               <div className="flex flex-wrap gap-2 mb-4">
-                {formData.skillsWanted.map((skill, index) => (
-                  <SkillTag
-                    key={index}
-                    skill={skill}
-                    variant="wanted"
-                    onRemove={() => removeSkillWanted(skill)}
-                  />
-                ))}
+                {loadingSkills ? (
+                  <div className="text-gray-500">Loading skills...</div>
+                ) : skillsWanted.length > 0 ? (
+                  skillsWanted.map((skill: any) => (
+                    <SkillTag
+                      key={skill._id}
+                      skill={skill.name}
+                      variant="wanted"
+                      onRemove={() => removeSkillWanted(skill)}
+                    />
+                  ))
+                ) : (
+                  <div className="text-gray-500">No skills wanted yet</div>
+                )}
               </div>
 
               <div className="flex gap-2">
@@ -310,7 +451,7 @@ const ProfilePage: React.FC = () => {
                 />
                 <button
                   type="button"
-                  onClick={addSkillWanted}
+                  onClick={() => addSkillWanted()}
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 >
                   <Plus className="h-5 w-5" />
@@ -358,7 +499,7 @@ const ProfilePage: React.FC = () => {
                 </select>
                 <button
                   type="button"
-                  onClick={addAvailability}
+                  onClick={() => addAvailability()}
                   disabled={!newAvailability}
                   className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -388,6 +529,8 @@ const ProfilePage: React.FC = () => {
               </button>
             </div>
           </form>
+
+
         </div>
       </div>
     </div>

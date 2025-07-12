@@ -118,6 +118,13 @@ class ApiService {
     });
   }
 
+  async updateUserSkills(skillsData: any) {
+    return this.request<any>('/users/skills', {
+      method: 'PUT',
+      data: skillsData,
+    });
+  }
+
   async deleteUser(id: string) {
     return this.request<void>(`/users/${id}`, {
       method: 'DELETE',
@@ -127,6 +134,14 @@ class ApiService {
   // Skills endpoints
   async getSkills() {
     return this.request<any[]>('/skills');
+  }
+
+  async getUserSkills(userId: string) {
+    return this.request<any[]>(`/skills/user/${userId}`);
+  }
+
+  async getMySkills() {
+    return this.request<any[]>('/skills/my-skills');
   }
 
   async createSkill(skillData: any) {

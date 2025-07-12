@@ -22,13 +22,28 @@ router.get('/', async (req, res) => {
 router.get('/user/:userId', async (req, res) => {
   try {
     const skills = await Skill.find({ 
-      user: req.params.userId,
-      approved: true 
+      user: req.params.userId
     }).populate('user', 'name email location');
     
+    console.log('Skills found for user:', req.params.userId, skills);
     res.json(skills);
   } catch (error) {
     console.error('Get user skills error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get skills for current authenticated user
+router.get('/my-skills', verifyToken, userExists, async (req, res) => {
+  try {
+    const skills = await Skill.find({ 
+      user: req.user.userId
+    }).populate('user', 'name email location');
+    
+    console.log('My skills found:', skills);
+    res.json(skills);
+  } catch (error) {
+    console.error('Get my skills error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

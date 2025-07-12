@@ -7,7 +7,7 @@ const { validateProfileUpdate } = require('../middleware/validation');
 // Get all public users
 router.get('/', async (req, res) => {
   try {
-    const users = await User.find({ isPublic: true, banned: false })
+    const users = await User.find({ isPublic: true, isBanned: false })
       .select('-password')
       .populate('skillsOffered', 'name description type')
       .populate('skillsWanted', 'name description type');
@@ -45,23 +45,47 @@ router.get('/:id', async (req, res) => {
 // Update user profile
 router.put('/profile', verifyToken, userExists, validateProfileUpdate, async (req, res) => {
   try {
-    const { name, location, availability, isPublic } = req.body;
+    const { name, location, availability, isPublic, skillsOffered, skillsWanted } = req.body;
     const updates = {};
 
     if (name) updates.name = name;
     if (location !== undefined) updates.location = location;
     if (availability !== undefined) updates.availability = availability;
     if (isPublic !== undefined) updates.isPublic = isPublic;
+    if (skillsOffered !== undefined) updates.skillsOffered = skillsOffered;
+    if (skillsWanted !== undefined) updates.skillsWanted = skillsWanted;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.userId,
       { ...updates, updatedAt: new Date() },
       { new: true }
-    ).select('-password');
+    ).select('-password').populate('skillsOffered', 'name description type').populate('skillsWanted', 'name description type');
 
     res.json(updatedUser);
   } catch (error) {
     console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update user skills
+router.put('/skills', verifyToken, userExists, async (req, res) => {
+  try {
+    const { skillsOffered, skillsWanted } = req.body;
+    const updates = {};
+
+    if (skillsOffered !== undefined) updates.skillsOffered = skillsOffered;
+    if (skillsWanted !== undefined) updates.skillsWanted = skillsWanted;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.userId,
+      { ...updates, updatedAt: new Date() },
+      { new: true }
+    ).select('-password').populate('skillsOffered', 'name description type').populate('skillsWanted', 'name description type');
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Update skills error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -77,7 +101,7 @@ router.get('/search/skill', async (req, res) => {
 
     const users = await User.find({
       isPublic: true,
-      banned: false,
+      isBanned: false,
       $or: [
         { 'skillsOffered': { $in: await require('../models/Skill').find({ name: { $regex: skill, $options: 'i' } }).select('_id') } },
         { 'skillsWanted': { $in: await require('../models/Skill').find({ name: { $regex: skill, $options: 'i' } }).select('_id') } }

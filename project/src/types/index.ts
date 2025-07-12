@@ -6,7 +6,7 @@ export interface User {
   profilePhoto?: string;
   skillsOffered: string[];
   skillsWanted: string[];
-  availability: string[];
+  availability?: string;
   isPublic: boolean;
   rating: number;
   completedSwaps: number;
