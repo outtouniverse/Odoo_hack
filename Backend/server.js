@@ -27,8 +27,12 @@ app.use(limiter);
 
 // CORS
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? ['https://your-frontend-domain.com'] : ['http://localhost:3000'],
-  credentials: true
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-frontend-domain.com'] 
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing middleware
@@ -51,6 +55,16 @@ app.use('/api/admin', adminRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Skill Swap Platform Backend is running' });
+});
+
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Debug endpoint working',
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV
+  });
 });
 
 // 404 handler

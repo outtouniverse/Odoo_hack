@@ -6,6 +6,7 @@ const { validateRegistration, validateLogin } = require('../middleware/validatio
 
 // Register new user
 router.post('/register', validateRegistration, async (req, res) => {
+  console.log('Registration request received:', req.body);
   try {
     const { email, password, name, username } = req.body;
 
@@ -39,6 +40,7 @@ router.post('/register', validateRegistration, async (req, res) => {
 
     const user = new User(userData);
     await user.save();
+    console.log('User created successfully:', { id: user._id, email: user.email, name: user.name });
 
     // Generate token
     const token = generateToken(user._id, user.role);
@@ -68,9 +70,11 @@ router.post('/register', validateRegistration, async (req, res) => {
 router.post('/login', validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login request received for email:', email);
 
     // Find user by email
     const user = await User.findOne({ email });
+    console.log('User lookup result:', user ? 'User found' : 'User not found');
     if (!user) {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
@@ -82,6 +86,7 @@ router.post('/login', validateLogin, async (req, res) => {
 
     // Verify password
     const isPasswordValid = await comparePassword(password, user.password);
+    console.log('Password validation result:', isPasswordValid ? 'Valid' : 'Invalid');
     if (!isPasswordValid) {
       return res.status(400).json({ error: 'Invalid email or password' });
     }

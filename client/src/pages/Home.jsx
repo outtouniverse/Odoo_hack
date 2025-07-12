@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const { user, isAuthenticated, logout } = useAuth();
 
   const goToLogin = () => {
     window.location.href = '/login';
@@ -9,6 +11,11 @@ const Home = () => {
 
   const goToRegister = () => {
     window.location.href = '/register';
+  };
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/';
   };
 
   const users = [
@@ -43,19 +50,35 @@ const Home = () => {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Skill Swap Platform</h1>
             
-            <div className="flex space-x-4"> {/* Added a div for multiple buttons */}
-              <button 
-                onClick={goToLogin}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-              >
-                Login
-              </button>
-              <button 
-                onClick={goToRegister}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
-              >
-                Register
-              </button>
+            <div className="flex space-x-4">
+              {isAuthenticated ? (
+                <>
+                  <span className="text-gray-700 font-medium">
+                    Welcome, {user?.name || user?.email}!
+                  </span>
+                  <button 
+                    onClick={handleLogout}
+                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={goToLogin}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Login
+                  </button>
+                  <button 
+                    onClick={goToRegister}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Register
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

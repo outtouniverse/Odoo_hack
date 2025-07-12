@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   // State variables for the registration form fields
@@ -6,21 +7,50 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { register } = useAuth();
 
   // Function to navigate to the login page
   const goToLogin = () => {
-    window.location.href = '/login'; // Assuming a /login route for your login page
+    window.location.href = '/login';
   };
 
   const goToHome = () => {
     window.location.href = '/';
   };
 
-  // Function to handle form submission (currently just logs data, no API integration)
-  const handleRegister = (e) => {
-    e.preventDefault(); // Prevent default form submission behavior
-    console.log('Register data:', { email, password, name, username });
-    // In a real application, you would make an API call here
+  // Function to handle form submission with API integration
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const userData = {
+        email,
+        password,
+        name,
+        ...(username && { username }) // Only include username if provided
+      };
+
+      console.log('Sending registration data:', userData);
+
+      await register(userData);
+      
+      // Redirect to home page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Registration error:', error);
+      if (error.message.includes('Validation failed') && error.details) {
+        const validationErrors = error.details.map(err => err.msg).join(', ');
+        setError(`Validation errors: ${validationErrors}`);
+      } else {
+        setError(error.message || 'Registration failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,6 +75,12 @@ const Register = () => {
 
           {/* Registration form */}
           <form onSubmit={handleRegister} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            
             {/* Name input field */}
             <div>
               <label htmlFor="name" className="block text-gray-700 font-semibold mb-2">Name</label>
@@ -55,7 +91,7 @@ const Register = () => {
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
                 placeholder="Enter your full name"
-                required // Mark as required as per backend's implicit need for 'name'
+                required
               />
             </div>
 
@@ -103,9 +139,10 @@ const Register = () => {
             {/* Register button */}
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
-              Register
+              {loading ? 'Creating Account...' : 'Register'}
             </button>
           </form>
 

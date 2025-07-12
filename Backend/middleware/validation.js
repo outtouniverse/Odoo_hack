@@ -4,6 +4,8 @@ const { body, validationResult } = require('express-validator');
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('Validation errors:', errors.array());
+    console.log('Request body:', req.body);
     return res.status(400).json({ 
       error: 'Validation failed',
       details: errors.array()
@@ -15,7 +17,7 @@ const handleValidationErrors = (req, res, next) => {
 // User registration validation
 const validateRegistration = [
   body('username')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isLength({ min: 3, max: 30 })
     .withMessage('Username must be between 3 and 30 characters')
     .matches(/^[a-zA-Z0-9_]+$/)
