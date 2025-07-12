@@ -45,6 +45,9 @@ router.get('/:id', async (req, res) => {
 // Update user profile
 router.put('/profile', verifyToken, userExists, validateProfileUpdate, async (req, res) => {
   try {
+    console.log('Profile update request received:', req.body);
+    console.log('User ID:', req.user.userId);
+    
     const { name, location, availability, isPublic, skillsOffered, skillsWanted } = req.body;
     const updates = {};
 
@@ -55,12 +58,15 @@ router.put('/profile', verifyToken, userExists, validateProfileUpdate, async (re
     if (skillsOffered !== undefined) updates.skillsOffered = skillsOffered;
     if (skillsWanted !== undefined) updates.skillsWanted = skillsWanted;
 
+    console.log('Updates to apply:', updates);
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user.userId,
       { ...updates, updatedAt: new Date() },
       { new: true }
     ).select('-password').populate('skillsOffered', 'name description type').populate('skillsWanted', 'name description type');
 
+    console.log('User updated successfully:', updatedUser);
     res.json(updatedUser);
   } catch (error) {
     console.error('Update profile error:', error);

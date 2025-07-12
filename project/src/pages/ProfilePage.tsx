@@ -59,12 +59,16 @@ const ProfilePage: React.FC = () => {
         name: formData.name,
         location: formData.location,
         profilePhoto: formData.profilePhoto,
-        availability: formData.availability.join(', '), // Convert array to string
+        availability: formData.availability.length > 0 ? formData.availability.join(', ') : '', // Convert array to string, empty if no availability
         isPublic: formData.isPublic
       };
 
+      console.log('Submitting profile data:', profileData);
+
       // Update user profile in database
       const updatedUser = await apiService.updateUser(user.id, profileData);
+      
+      console.log('Profile updated successfully:', updatedUser);
       
       // Update the user context
       updateUser(updatedUser);
@@ -130,11 +134,18 @@ const ProfilePage: React.FC = () => {
       try {
         const updatedAvailability = [...formData.availability, newAvailability];
         
+        console.log('Adding availability:', newAvailability);
+        console.log('Updated availability array:', updatedAvailability);
+        
         // Update availability in database
         if (user) {
-          await apiService.updateUser(user.id, {
-            availability: updatedAvailability.join(', ')
-          });
+          const availabilityData = {
+            availability: updatedAvailability.length > 0 ? updatedAvailability.join(', ') : ''
+          };
+          console.log('Sending availability data:', availabilityData);
+          
+          await apiService.updateUser(user.id, availabilityData);
+          console.log('Availability updated successfully');
         }
         
         setFormData({
@@ -179,11 +190,18 @@ const ProfilePage: React.FC = () => {
     try {
       const updatedAvailability = formData.availability.filter(a => a !== availability);
       
+      console.log('Removing availability:', availability);
+      console.log('Updated availability array:', updatedAvailability);
+      
       // Update availability in database
       if (user) {
-        await apiService.updateUser(user.id, {
-          availability: updatedAvailability.join(', ')
-        });
+        const availabilityData = {
+          availability: updatedAvailability.length > 0 ? updatedAvailability.join(', ') : ''
+        };
+        console.log('Sending availability data:', availabilityData);
+        
+        await apiService.updateUser(user.id, availabilityData);
+        console.log('Availability updated successfully');
       }
       
       setFormData({

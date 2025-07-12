@@ -108,8 +108,16 @@ const validateProfileUpdate = [
     .withMessage('Location must be between 2 and 100 characters'),
   body('availability')
     .optional()
-    .isLength({ min: 5, max: 200 })
-    .withMessage('Availability must be between 5 and 200 characters'),
+    .custom((value) => {
+      // Allow empty string or strings between 5-200 characters
+      if (value === '' || value === undefined || value === null) {
+        return true;
+      }
+      if (typeof value === 'string' && value.length >= 5 && value.length <= 200) {
+        return true;
+      }
+      throw new Error('Availability must be empty or between 5 and 200 characters');
+    }),
   body('isPublic')
     .optional()
     .isBoolean()

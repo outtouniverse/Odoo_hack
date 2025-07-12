@@ -112,7 +112,7 @@ class ApiService {
   }
 
   async updateUser(id: string, userData: any) {
-    return this.request<any>(`/users/${id}`, {
+    return this.request<any>('/users/profile', {
       method: 'PUT',
       data: userData,
     });

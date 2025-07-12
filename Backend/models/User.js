@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema({
   profilePhoto: { type: String }, // URL or file path
   skillsOffered: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
   skillsWanted: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
-  availability: { type: String, maxlength: 200 },
+  availability: { type: String, maxlength: 200, default: '' },
   isPublic: { type: Boolean, default: true },
   rating: { type: Number, default: 5.0, min: 0, max: 5 },
   completedSwaps: { type: Number, default: 0 },
