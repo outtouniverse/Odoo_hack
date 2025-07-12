@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User } from '../types';
-import { Search, Filter, MapPin, Star, MessageSquare, User as UserIcon, ChevronDown } from 'lucide-react';
+import { Search, Filter, MapPin, Star, MessageSquare, User as UserIcon, ChevronDown, Loader2 } from 'lucide-react';
 import SkillTag from '../components/SkillTag';
 import SwapRequestModal from '../components/SwapRequestModal';
+import { apiService } from '../services/api';
 
 const BrowseSkillsPage: React.FC = () => {
   const { user } = useAuth();
@@ -16,25 +17,54 @@ const BrowseSkillsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch users from backend
+  const fetchUsers = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Fetching users from backend...');
+      const users = await apiService.getUsers();
+      console.log('Fetched users:', users);
+      
+      // Filter out current user and normalize data format
+      const publicUsers = users
+        .filter((u: any) => u._id !== user.id && u.isPublic && !u.isBanned)
+        .map((u: any) => ({
+          ...u,
+          id: u._id, // Convert _id to id for consistency
+          // Extract skill names from skill objects
+          skillsOffered: Array.isArray(u.skillsOffered) 
+            ? u.skillsOffered.map((skill: any) => typeof skill === 'string' ? skill : skill.name)
+            : [],
+          skillsWanted: Array.isArray(u.skillsWanted) 
+            ? u.skillsWanted.map((skill: any) => typeof skill === 'string' ? skill : skill.name)
+            : [],
+          availability: Array.isArray(u.availability) 
+            ? u.availability 
+            : typeof u.availability === 'string'
+              ? u.availability.split(', ').filter((item: string) => item.trim() !== '')
+              : []
+        })) as User[];
+      
+      console.log('Processed users:', publicUsers);
+      setAllUsers(publicUsers);
+      setFilteredUsers(publicUsers);
+    } catch (error: any) {
+      console.error('Failed to fetch users:', error);
+      setError(error.message || 'Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const publicUsers = users.filter((u: User) => 
-      u.id !== user?.id && u.isPublic && !u.isBanned
-    );
-    
-    // Normalize availability format - convert string to array if needed
-    const normalizedUsers = publicUsers.map((u: any) => ({
-      ...u,
-      availability: Array.isArray(u.availability) 
-        ? u.availability 
-        : typeof u.availability === 'string'
-          ? u.availability.split(', ').filter((item: string) => item.trim() !== '')
-          : []
-    })) as User[];
-    
-    setAllUsers(normalizedUsers);
-    setFilteredUsers(normalizedUsers);
+    fetchUsers();
   }, [user]);
 
   useEffect(() => {
@@ -44,15 +74,21 @@ const BrowseSkillsPage: React.FC = () => {
     if (searchTerm) {
       filtered = filtered.filter(u => 
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.skillsOffered.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        u.skillsWanted.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+        (u.skillsOffered && u.skillsOffered.some((skill: any) => 
+          typeof skill === 'string' ? skill.toLowerCase().includes(searchTerm.toLowerCase()) : skill.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )) ||
+        (u.skillsWanted && u.skillsWanted.some((skill: any) => 
+          typeof skill === 'string' ? skill.toLowerCase().includes(searchTerm.toLowerCase()) : skill.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ))
       );
     }
 
     // Filter by specific skill
     if (selectedSkill) {
       filtered = filtered.filter(u => 
-        u.skillsOffered.some(skill => skill.toLowerCase().includes(selectedSkill.toLowerCase()))
+        u.skillsOffered && u.skillsOffered.some((skill: any) => 
+          typeof skill === 'string' ? skill.toLowerCase().includes(selectedSkill.toLowerCase()) : skill.name.toLowerCase().includes(selectedSkill.toLowerCase())
+        )
       );
     }
 
@@ -84,7 +120,7 @@ const BrowseSkillsPage: React.FC = () => {
 
   // Get all unique skills for filter dropdown
   const allSkills = Array.from(new Set(
-    allUsers.flatMap(u => u.skillsOffered)
+    allUsers.flatMap(u => u.skillsOffered || [])
   )).sort();
 
   // Get all unique locations
@@ -199,15 +235,38 @@ const BrowseSkillsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+            <p className="text-gray-600">Loading teachers...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800">{error}</p>
+            <button
+              onClick={fetchUsers}
+              className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {/* Results */}
-        <div className="mb-6">
-          <p className="text-gray-600">
-            Showing {filteredUsers.length} of {allUsers.length} teachers
-          </p>
-        </div>
+        {!loading && !error && (
+          <div className="mb-6">
+            <p className="text-gray-600">
+              Showing {filteredUsers.length} of {allUsers.length} teachers
+            </p>
+          </div>
+        )}
 
         {/* User Grid */}
-        {filteredUsers.length > 0 ? (
+        {!loading && !error && filteredUsers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredUsers.map((targetUser) => (
               <div key={targetUser.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
@@ -243,22 +302,24 @@ const BrowseSkillsPage: React.FC = () => {
                   </div>
 
                   {/* Skills Offered */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Can Teach:</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {targetUser.skillsOffered.slice(0, 3).map((skill, index) => (
-                        <SkillTag key={index} skill={skill} variant="offered" size="sm" />
-                      ))}
-                      {targetUser.skillsOffered.length > 3 && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          +{targetUser.skillsOffered.length - 3} more
-                        </span>
-                      )}
+                  {targetUser.skillsOffered && targetUser.skillsOffered.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Can Teach:</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {targetUser.skillsOffered.slice(0, 3).map((skill, index) => (
+                          <SkillTag key={index} skill={skill} variant="offered" size="sm" />
+                        ))}
+                        {targetUser.skillsOffered.length > 3 && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            +{targetUser.skillsOffered.length - 3} more
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Skills Wanted */}
-                  {targetUser.skillsWanted.length > 0 && (
+                  {targetUser.skillsWanted && targetUser.skillsWanted.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Wants to Learn:</h4>
                       <div className="flex flex-wrap gap-1">
@@ -299,7 +360,7 @@ const BrowseSkillsPage: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : !loading && !error ? (
           <div className="text-center py-12">
             <div className="max-w-md mx-auto">
               <UserIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -320,7 +381,7 @@ const BrowseSkillsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Swap Request Modal */}
