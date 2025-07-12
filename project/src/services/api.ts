@@ -11,7 +11,7 @@ class ApiService {
     this.token = localStorage.getItem('token');
     this.api = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 10000,
+      timeout: 15000, // Increased timeout
       headers: {
         'Content-Type': 'application/json',
       },
@@ -54,6 +54,37 @@ class ApiService {
     localStorage.removeItem('token');
   }
 
+  // Test connection to backend
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await this.api.get('/health');
+      return { success: true, message: response.data.message };
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          return { 
+            success: false, 
+            message: 'Connection timeout. Please check if the backend server is running on port 5001.' 
+          };
+        }
+        if (error.code === 'ERR_NETWORK') {
+          return { 
+            success: false, 
+            message: 'Network error. Please check if the backend server is running and accessible.' 
+          };
+        }
+        return { 
+          success: false, 
+          message: `Connection failed: ${error.message}` 
+        };
+      }
+      return { 
+        success: false, 
+        message: `Unknown error: ${error}` 
+      };
+    }
+  }
+
   // Generic request method
   private async request<T>(endpoint: string, options: any = {}): Promise<T> {
     try {
@@ -62,10 +93,20 @@ class ApiService {
         ...options,
       });
       return response.data;
-    } catch (error) {
-      console.error('API request failed:', error);
+    } catch (error: any) {
       if (axios.isAxiosError(error)) {
         const errorData = error.response?.data;
+        
+        // Handle timeout specifically
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Request timeout. Please check if the backend server is running on port 5001.');
+        }
+        
+        // Handle network errors
+        if (error.code === 'ERR_NETWORK') {
+          throw new Error('Network error. Please check if the backend server is running and accessible.');
+        }
+        
         if (errorData?.details && Array.isArray(errorData.details)) {
           // Format validation errors, handle missing param
           const validationErrors = errorData.details
@@ -211,6 +252,24 @@ class ApiService {
     return this.request<any>(`/admin/users/${userId}/unban`, {
       method: 'PUT',
     });
+  }
+
+  async getAdminUsers() {
+    return this.request<any[]>('/admin/users');
+  }
+
+  async getAdminSwaps() {
+    return this.request<any[]>('/admin/swaps');
+  }
+
+  async deleteAdminSwap(swapId: string) {
+    return this.request<void>(`/admin/swaps/${swapId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAdminAnalytics() {
+    return this.request<any>('/admin/analytics');
   }
 
   // Health check

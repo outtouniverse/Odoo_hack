@@ -258,11 +258,11 @@ const BrowseSkillsPage: React.FC = () => {
 
         {/* Results */}
         {!loading && !error && (
-          <div className="mb-6">
-            <p className="text-gray-600">
-              Showing {filteredUsers.length} of {allUsers.length} teachers
-            </p>
-          </div>
+        <div className="mb-6">
+          <p className="text-gray-600">
+            Showing {filteredUsers.length} of {allUsers.length} teachers
+          </p>
+        </div>
         )}
 
         {/* User Grid */}
@@ -303,19 +303,19 @@ const BrowseSkillsPage: React.FC = () => {
 
                   {/* Skills Offered */}
                   {targetUser.skillsOffered && targetUser.skillsOffered.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Can Teach:</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {targetUser.skillsOffered.slice(0, 3).map((skill, index) => (
-                          <SkillTag key={index} skill={skill} variant="offered" size="sm" />
-                        ))}
-                        {targetUser.skillsOffered.length > 3 && (
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            +{targetUser.skillsOffered.length - 3} more
-                          </span>
-                        )}
-                      </div>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Can Teach:</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {targetUser.skillsOffered.slice(0, 3).map((skill, index) => (
+                        <SkillTag key={index} skill={skill} variant="offered" size="sm" />
+                      ))}
+                      {targetUser.skillsOffered.length > 3 && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          +{targetUser.skillsOffered.length - 3} more
+                        </span>
+                      )}
                     </div>
+                  </div>
                   )}
 
                   {/* Skills Wanted */}

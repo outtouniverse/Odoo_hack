@@ -11,9 +11,11 @@ import {
   Filter,
   Calendar,
   Trash2,
-  Award
+  Award,
+  Loader2
 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
+import { apiService } from '../services/api';
 
 const SwapRequestsPage: React.FC = () => {
   const { user } = useAuth();
@@ -23,25 +25,100 @@ const SwapRequestsPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'accepted' | 'rejected' | 'completed'>('all');
   const [selectedSwapForFeedback, setSelectedSwapForFeedback] = useState<SwapRequest | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch swap requests and users from backend
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Fetching swap requests and users...');
+      
+      // Fetch swap requests
+      const requests = await apiService.getSwaps();
+      console.log('Fetched swap requests:', requests);
+      
+      // Fetch users
+      const allUsers = await apiService.getUsers();
+      console.log('Fetched users:', allUsers);
+      
+      // Process users to normalize data format
+      const processedUsers = allUsers.map((u: any) => ({
+        ...u,
+        id: u._id,
+        skillsOffered: Array.isArray(u.skillsOffered) 
+          ? u.skillsOffered.map((skill: any) => typeof skill === 'string' ? skill : skill.name)
+          : [],
+        skillsWanted: Array.isArray(u.skillsWanted) 
+          ? u.skillsWanted.map((skill: any) => typeof skill === 'string' ? skill : skill.name)
+          : [],
+        availability: Array.isArray(u.availability) 
+          ? u.availability 
+          : typeof u.availability === 'string'
+            ? u.availability.split(', ').filter((item: string) => item.trim() !== '')
+            : []
+      })) as User[];
+      
+      // Process swap requests to match expected format
+      const processedRequests = requests.map((req: any) => {
+        console.log('Processing swap request:', req);
+        return {
+          ...req,
+          id: req._id,
+          fromUserId: req.fromUser?._id || req.fromUserId,
+          toUserId: req.toUser?._id || req.toUserId,
+          skillOffered: req.offeredSkill?.name || req.offeredSkill,
+          skillRequested: req.requestedSkill?.name || req.requestedSkill
+        };
+      });
+      
+      console.log('Processed requests:', processedRequests);
+      setSwapRequests(processedRequests);
+      setUsers(processedUsers);
+    } catch (error: any) {
+      console.error('Failed to fetch data:', error);
+      setError(error.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (user) {
-      const requests = JSON.parse(localStorage.getItem('swapRequests') || '[]');
-      setSwapRequests(requests);
-      
-      const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      setUsers(allUsers);
-    }
+    fetchData();
   }, [user]);
 
   const getFilteredRequests = () => {
+    console.log('Filtering requests for user:', user?.id);
+    console.log('All swap requests:', swapRequests);
+    
     const userRequests = swapRequests.filter(req => {
+        const reqUserId = req.toUserId;
+        const fromUserId = req.fromUserId;
+        
+        console.log('Checking request:', {
+          reqUserId,
+          fromUserId,
+          userId: user?.id,
+          reqUserIdType: typeof reqUserId,
+          fromUserIdType: typeof fromUserId,
+          userIdType: typeof user?.id,
+          activeTab,
+          isReceived: reqUserId === user?.id,
+          isSent: fromUserId === user?.id
+        });
+        
       if (activeTab === 'received') {
-        return req.toUserId === user?.id;
+          return reqUserId === user?.id;
       } else {
-        return req.fromUserId === user?.id;
+          return fromUserId === user?.id;
       }
     });
+    
+    console.log('Filtered user requests:', userRequests);
 
     if (filterStatus === 'all') {
       return userRequests;
@@ -50,25 +127,30 @@ const SwapRequestsPage: React.FC = () => {
     return userRequests.filter(req => req.status === filterStatus);
   };
 
-  const updateRequestStatus = (requestId: string, status: SwapRequest['status']) => {
-    const updatedRequests = swapRequests.map(req => 
-      req.id === requestId 
-        ? { ...req, status, updatedAt: new Date().toISOString() }
-        : req
-    );
-    
-    setSwapRequests(updatedRequests);
-    localStorage.setItem('swapRequests', JSON.stringify(updatedRequests));
+  const updateRequestStatus = async (requestId: string, status: SwapRequest['status']) => {
+    try {
+      await apiService.updateSwap(requestId, { status });
+      // Refresh data after update
+      await fetchData();
+    } catch (error: any) {
+      console.error('Failed to update request status:', error);
+      alert(`Failed to update request: ${error.message}`);
+    }
   };
 
-  const deleteRequest = (requestId: string) => {
-    const updatedRequests = swapRequests.filter(req => req.id !== requestId);
-    setSwapRequests(updatedRequests);
-    localStorage.setItem('swapRequests', JSON.stringify(updatedRequests));
+  const deleteRequest = async (requestId: string) => {
+    try {
+      await apiService.deleteSwap(requestId);
+      // Refresh data after deletion
+      await fetchData();
+    } catch (error: any) {
+      console.error('Failed to delete request:', error);
+      alert(`Failed to delete request: ${error.message}`);
+    }
   };
 
-  const markAsCompleted = (requestId: string) => {
-    updateRequestStatus(requestId, 'completed');
+  const markAsCompleted = async (requestId: string) => {
+    await updateRequestStatus(requestId, 'completed');
   };
 
   const openFeedbackModal = (request: SwapRequest) => {
@@ -76,10 +158,9 @@ const SwapRequestsPage: React.FC = () => {
     setShowFeedbackModal(true);
   };
 
-  const handleFeedbackSuccess = () => {
-    // Refresh data or show success message
-    const requests = JSON.parse(localStorage.getItem('swapRequests') || '[]');
-    setSwapRequests(requests);
+  const handleFeedbackSuccess = async () => {
+    // Refresh data after feedback
+    await fetchData();
   };
 
   const getUserById = (userId: string) => {
@@ -132,6 +213,27 @@ const SwapRequestsPage: React.FC = () => {
           <p className="mt-2 text-gray-600">Manage your skill exchange requests</p>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+            <p className="text-gray-600">Loading swap requests...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800">{error}</p>
+            <button
+              onClick={fetchData}
+              className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
           <div className="border-b border-gray-200">
@@ -183,7 +285,7 @@ const SwapRequestsPage: React.FC = () => {
 
           {/* Request List */}
           <div className="divide-y divide-gray-200">
-            {filteredRequests.length > 0 ? (
+            {!loading && !error && filteredRequests.length > 0 ? (
               filteredRequests.map((request) => {
                 const otherUser = getUserById(
                   activeTab === 'received' ? request.fromUserId : request.toUserId
@@ -305,7 +407,7 @@ const SwapRequestsPage: React.FC = () => {
                   </div>
                 );
               })
-            ) : (
+            ) : !loading && !error ? (
               <div className="p-12 text-center">
                 <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -319,7 +421,7 @@ const SwapRequestsPage: React.FC = () => {
                   }
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.error('Token validation failed:', error);
           apiService.clearToken();
-        }
+    }
       }
       setLoading(false);
     };
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Otherwise, update via API
         const updatedUser = await apiService.updateUser(user.id, userData);
-        setUser(updatedUser);
+    setUser(updatedUser);
       }
     } catch (error) {
       console.error('User update failed:', error);

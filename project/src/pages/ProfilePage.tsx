@@ -174,11 +174,11 @@ const ProfilePage: React.FC = () => {
           name: newSkillOffered.trim(),
           description: `I can teach ${newSkillOffered.trim()}`,
           type: 'offered'
-        });
+      });
 
         // Refresh skills from database
         await fetchUserSkills();
-        setNewSkillOffered('');
+      setNewSkillOffered('');
       } catch (error: any) {
         console.error('Failed to add skill:', error);
         alert(`Failed to add skill: ${error.message}`);
@@ -194,11 +194,11 @@ const ProfilePage: React.FC = () => {
           name: newSkillWanted.trim(),
           description: `I want to learn ${newSkillWanted.trim()}`,
           type: 'wanted'
-        });
+      });
 
         // Refresh skills from database
         await fetchUserSkills();
-        setNewSkillWanted('');
+      setNewSkillWanted('');
       } catch (error: any) {
         console.error('Failed to add skill:', error);
         alert(`Failed to add skill: ${error.message}`);
@@ -231,11 +231,11 @@ const ProfilePage: React.FC = () => {
           await refreshUser();
         }
         
-        setFormData({
-          ...formData,
+      setFormData({
+        ...formData,
           availability: updatedAvailability
-        });
-        setNewAvailability('');
+      });
+      setNewAvailability('');
       } catch (error: any) {
         console.error('Failed to add availability:', error);
         alert(`Failed to add availability: ${error.message}`);
@@ -293,8 +293,8 @@ const ProfilePage: React.FC = () => {
         await refreshUser();
       }
       
-      setFormData({
-        ...formData,
+    setFormData({
+      ...formData,
         availability: updatedAvailability
       });
     } catch (error: any) {
@@ -557,12 +557,12 @@ const ProfilePage: React.FC = () => {
                   <div className="text-gray-500">Loading skills...</div>
                 ) : skillsOffered.length > 0 ? (
                   skillsOffered.map((skill: any) => (
-                    <SkillTag
+                  <SkillTag
                       key={skill._id}
                       skill={skill.name}
-                      variant="offered"
-                      onRemove={() => removeSkillOffered(skill)}
-                    />
+                    variant="offered"
+                    onRemove={() => removeSkillOffered(skill)}
+                  />
                   ))
                 ) : (
                   <div className="text-gray-500">No skills offered yet</div>
@@ -599,12 +599,12 @@ const ProfilePage: React.FC = () => {
                   <div className="text-gray-500">Loading skills...</div>
                 ) : skillsWanted.length > 0 ? (
                   skillsWanted.map((skill: any) => (
-                    <SkillTag
+                  <SkillTag
                       key={skill._id}
                       skill={skill.name}
-                      variant="wanted"
-                      onRemove={() => removeSkillWanted(skill)}
-                    />
+                    variant="wanted"
+                    onRemove={() => removeSkillWanted(skill)}
+                  />
                   ))
                 ) : (
                   <div className="text-gray-500">No skills wanted yet</div>

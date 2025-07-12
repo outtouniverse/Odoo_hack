@@ -81,7 +81,7 @@ router.put('/profile', verifyToken, userExists, validateProfileUpdate, async (re
     // Verify the data was actually saved
     const verifyUser = await User.findById(req.user.userId).select('availability');
     console.log('Database verification - availability:', verifyUser.availability);
-    
+
     res.json(updatedUser);
   } catch (error) {
     console.error('Update profile error:', error);

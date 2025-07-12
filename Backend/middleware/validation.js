@@ -80,6 +80,7 @@ const validateSwapRequest = [
     .notEmpty()
     .withMessage('Requested skill ID is required'),
   body('message')
+    .optional()
     .isLength({ min: 10, max: 500 })
     .withMessage('Message must be between 10 and 500 characters'),
   handleValidationErrors

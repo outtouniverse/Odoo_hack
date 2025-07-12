@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User, SwapRequest } from '../types';
 import { X, Send, MessageSquare, Star, MapPin } from 'lucide-react';
+import { apiService } from '../services/api';
 
 interface SwapRequestModalProps {
   targetUser: User;
@@ -22,6 +23,29 @@ const SwapRequestModal: React.FC<SwapRequestModalProps> = ({
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userSkills, setUserSkills] = useState<any[]>([]);
+  const [targetUserSkills, setTargetUserSkills] = useState<any[]>([]);
+
+  // Load skills when modal opens
+  React.useEffect(() => {
+    const loadSkills = async () => {
+      if (isOpen && user) {
+        try {
+          // Load current user's skills
+          const mySkills = await apiService.getMySkills();
+          setUserSkills(mySkills);
+          
+          // Load target user's skills
+          const targetSkills = await apiService.getUserSkills(targetUser.id);
+          setTargetUserSkills(targetSkills);
+        } catch (error) {
+          console.error('Failed to load skills:', error);
+        }
+      }
+    };
+    
+    loadSkills();
+  }, [isOpen, user, targetUser.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,40 +60,34 @@ const SwapRequestModal: React.FC<SwapRequestModalProps> = ({
     setError('');
 
     try {
-      const existingRequests = JSON.parse(localStorage.getItem('swapRequests') || '[]');
-      
-      // Check for duplicate requests
-      const duplicateRequest = existingRequests.find((req: SwapRequest) =>
-        req.fromUserId === user.id &&
-        req.toUserId === targetUser.id &&
-        req.status === 'pending'
-      );
+      console.log('Creating swap request with data:', {
+        toUserId: targetUser.id,
+        offeredSkillId: selectedOfferedSkill,
+        requestedSkillId: selectedRequestedSkill,
+        message: message.trim()
+      });
 
-      if (duplicateRequest) {
-        setError('You already have a pending request with this user');
-        setLoading(false);
-        return;
+      // Create swap request via backend API
+      const swapData: any = {
+        toUserId: targetUser.id,
+        offeredSkillId: selectedOfferedSkill,
+        requestedSkillId: selectedRequestedSkill
+      };
+      
+      // Only include message if it's not empty
+      if (message.trim()) {
+        swapData.message = message.trim();
       }
 
-      const newRequest: SwapRequest = {
-        id: Date.now().toString(),
-        fromUserId: user.id,
-        toUserId: targetUser.id,
-        skillOffered: selectedOfferedSkill,
-        skillRequested: selectedRequestedSkill,
-        message: message.trim(),
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      const newRequest = await apiService.createSwap(swapData);
 
-      const updatedRequests = [...existingRequests, newRequest];
-      localStorage.setItem('swapRequests', JSON.stringify(updatedRequests));
+      console.log('Swap request created successfully:', newRequest);
 
       onSuccess();
       onClose();
-    } catch (err) {
-      setError('Failed to send request. Please try again.');
+    } catch (err: any) {
+      console.error('Failed to create swap request:', err);
+      setError(err.message || 'Failed to send request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -145,11 +163,13 @@ const SwapRequestModal: React.FC<SwapRequestModalProps> = ({
               required
             >
               <option value="">Select a skill you can teach...</option>
-              {user.skillsOffered.map((skill, index) => (
-                <option key={index} value={skill}>{skill}</option>
+              {userSkills
+                .filter((skill: any) => skill.type === 'offered')
+                .map((skill: any) => (
+                  <option key={skill._id} value={skill._id}>{skill.name}</option>
               ))}
             </select>
-            {user.skillsOffered.length === 0 && (
+            {userSkills.filter((skill: any) => skill.type === 'offered').length === 0 && (
               <p className="text-sm text-red-600 mt-1">
                 You need to add skills to your profile first.
               </p>
@@ -168,8 +188,10 @@ const SwapRequestModal: React.FC<SwapRequestModalProps> = ({
               required
             >
               <option value="">Select a skill you want to learn...</option>
-              {targetUser.skillsOffered.map((skill, index) => (
-                <option key={index} value={skill}>{skill}</option>
+              {targetUserSkills
+                .filter((skill: any) => skill.type === 'offered')
+                .map((skill: any) => (
+                  <option key={skill._id} value={skill._id}>{skill.name}</option>
               ))}
             </select>
           </div>
@@ -191,7 +213,7 @@ const SwapRequestModal: React.FC<SwapRequestModalProps> = ({
           </div>
 
           {/* Availability Preview */}
-          {user.availability.length > 0 && (
+          {user.availability && user.availability.length > 0 && (
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-medium text-gray-900 mb-2">Your Availability</h4>
               <div className="flex flex-wrap gap-2">

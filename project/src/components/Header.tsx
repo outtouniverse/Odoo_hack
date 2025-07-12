@@ -60,6 +60,16 @@ const Header: React.FC = () => {
                 >
                   Requests
                 </Link>
+                <Link
+                  to="/debug"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive('/debug')
+                      ? 'text-red-600 bg-red-50'
+                      : 'text-gray-600 hover:text-red-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Debug
+                </Link>
                 {user.isAdmin && (
                   <Link
                     to="/admin"

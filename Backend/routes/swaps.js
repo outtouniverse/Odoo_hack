@@ -6,6 +6,28 @@ const User = require('../models/User');
 const { verifyToken, userExists } = require('../middleware/auth');
 const { validateSwapRequest } = require('../middleware/validation');
 
+// Get all swaps (for admin or general access)
+router.get('/', verifyToken, userExists, async (req, res) => {
+  try {
+    const swaps = await Swap.find({
+      $or: [
+        { fromUser: req.user.userId },
+        { toUser: req.user.userId }
+      ]
+    })
+    .populate('fromUser', 'name email')
+    .populate('toUser', 'name email')
+    .populate('offeredSkill', 'name description type')
+    .populate('requestedSkill', 'name description type')
+    .sort({ createdAt: -1 });
+
+    res.json(swaps);
+  } catch (error) {
+    console.error('Get swaps error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get all swaps for current user
 router.get('/my-swaps', verifyToken, userExists, async (req, res) => {
   try {
@@ -229,6 +251,44 @@ router.put('/:id/complete', verifyToken, userExists, async (req, res) => {
     res.json({ message: 'Swap completed successfully' });
   } catch (error) {
     console.error('Complete swap error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// General update swap route
+router.put('/:id', verifyToken, userExists, async (req, res) => {
+  try {
+    const swap = await Swap.findById(req.params.id);
+
+    if (!swap) {
+      return res.status(404).json({ error: 'Swap not found' });
+    }
+
+    // Check if user is part of this swap
+    if (swap.fromUser.toString() !== req.user.userId && 
+        swap.toUser.toString() !== req.user.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Update allowed fields
+    const { status } = req.body;
+    if (status) {
+      swap.status = status;
+      swap.updatedAt = new Date();
+    }
+
+    await swap.save();
+
+    const populatedSwap = await swap.populate([
+      { path: 'fromUser', select: 'name email' },
+      { path: 'toUser', select: 'name email' },
+      { path: 'offeredSkill', select: 'name description type' },
+      { path: 'requestedSkill', select: 'name description type' }
+    ]);
+
+    res.json(populatedSwap);
+  } catch (error) {
+    console.error('Update swap error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
