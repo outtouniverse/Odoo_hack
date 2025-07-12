@@ -9,6 +9,11 @@ const { validateSwapRequest } = require('../middleware/validation');
 // Get all swaps (for admin or general access)
 router.get('/', verifyToken, userExists, async (req, res) => {
   try {
+    console.log('Get swaps request from user:', req.user.userId);
+    console.log('User ID type:', typeof req.user.userId);
+    console.log('User ID value:', req.user.userId);
+    
+    // Try to find swaps with both string and ObjectId versions of the user ID
     const swaps = await Swap.find({
       $or: [
         { fromUser: req.user.userId },
@@ -21,6 +26,7 @@ router.get('/', verifyToken, userExists, async (req, res) => {
     .populate('requestedSkill', 'name description type')
     .sort({ createdAt: -1 });
 
+    console.log(`Found ${swaps.length} swaps for user ${req.user.userId}:`, swaps);
     res.json(swaps);
   } catch (error) {
     console.error('Get swaps error:', error);

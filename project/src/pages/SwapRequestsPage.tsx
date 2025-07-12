@@ -49,34 +49,56 @@ const SwapRequestsPage: React.FC = () => {
       // Process users to normalize data format
       const processedUsers = allUsers.map((u: any) => ({
         ...u,
-        id: u._id,
+        id: u._id || u.id,
+        name: u.name || 'Unknown User',
+        email: u.email || 'No email',
+        rating: u.rating || 5.0,
+        isBanned: u.isBanned || false,
+        isAdmin: u.isAdmin || false,
+        isPublic: u.isPublic !== false,
         skillsOffered: Array.isArray(u.skillsOffered) 
-          ? u.skillsOffered.map((skill: any) => typeof skill === 'string' ? skill : skill.name)
+          ? u.skillsOffered.map((skill: any) => typeof skill === 'string' ? skill : skill.name || 'Unknown Skill')
           : [],
         skillsWanted: Array.isArray(u.skillsWanted) 
-          ? u.skillsWanted.map((skill: any) => typeof skill === 'string' ? skill : skill.name)
+          ? u.skillsWanted.map((skill: any) => typeof skill === 'string' ? skill : skill.name || 'Unknown Skill')
           : [],
         availability: Array.isArray(u.availability) 
           ? u.availability 
           : typeof u.availability === 'string'
             ? u.availability.split(', ').filter((item: string) => item.trim() !== '')
-            : []
+            : [],
+        profilePhoto: u.profilePhoto || '',
+        completedSwaps: u.completedSwaps || 0
       })) as User[];
       
-      // Process swap requests to match expected format
+      // Process swap requests to match expected format (similar to admin page)
       const processedRequests = requests.map((req: any) => {
         console.log('Processing swap request:', req);
         return {
           ...req,
-          id: req._id,
-          fromUserId: req.fromUser?._id || req.fromUserId,
-          toUserId: req.toUser?._id || req.toUserId,
-          skillOffered: req.offeredSkill?.name || req.offeredSkill,
-          skillRequested: req.requestedSkill?.name || req.requestedSkill
+          id: req._id || req.id,
+          fromUserId: req.fromUserId || req.fromUser?._id?.toString() || req.fromUser?.toString() || req.fromUser || 'Unknown',
+          toUserId: req.toUserId || req.toUser?._id?.toString() || req.toUser?.toString() || req.toUser || 'Unknown',
+          skillOffered: req.skillOffered || req.offeredSkill?.name || req.offeredSkill || 'Unknown Skill',
+          skillRequested: req.skillRequested || req.requestedSkill?.name || req.requestedSkill || 'Unknown Skill',
+          status: req.status || 'pending',
+          message: req.message || '',
+          createdAt: req.createdAt || new Date(),
+          updatedAt: req.updatedAt || new Date()
         };
       });
       
       console.log('Processed requests:', processedRequests);
+      console.log('Current user ID:', user?.id);
+      console.log('Sample processed request:', processedRequests[0]);
+      console.log('Sample processed user:', processedUsers[0]);
+      
+      // Debug: Check if any requests match the current user
+      const matchingRequests = processedRequests.filter(req => 
+        req.fromUserId === user?.id || req.toUserId === user?.id
+      );
+      console.log('Matching requests for current user:', matchingRequests);
+      
       setSwapRequests(processedRequests);
       setUsers(processedUsers);
     } catch (error: any) {
@@ -94,6 +116,7 @@ const SwapRequestsPage: React.FC = () => {
   const getFilteredRequests = () => {
     console.log('Filtering requests for user:', user?.id);
     console.log('All swap requests:', swapRequests);
+    console.log('User object:', user);
     
     const userRequests = swapRequests.filter(req => {
         const reqUserId = req.toUserId;
@@ -108,7 +131,9 @@ const SwapRequestsPage: React.FC = () => {
           userIdType: typeof user?.id,
           activeTab,
           isReceived: reqUserId === user?.id,
-          isSent: fromUserId === user?.id
+          isSent: fromUserId === user?.id,
+          reqUserIdStrict: reqUserId === user?.id,
+          fromUserIdStrict: fromUserId === user?.id
         });
         
       if (activeTab === 'received') {

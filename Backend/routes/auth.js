@@ -156,7 +156,13 @@ router.get('/me', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user);
+    // Convert to plain object and ensure id field is present
+    const userResponse = {
+      ...user.toObject(),
+      id: user._id.toString()
+    };
+
+    res.json(userResponse);
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: 'Server error' });
