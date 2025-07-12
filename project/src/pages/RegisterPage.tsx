@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Mail, Lock, MapPin, AlertCircle, UserCheck } from 'lucide-react';
@@ -22,6 +22,7 @@ const RegisterPage: React.FC = () => {
     setLoading(true);
     setError('');
 
+    // Frontend validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -34,24 +35,44 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (formData.name.trim().length < 2) {
+      setError('Name must be at least 2 characters long');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.includes('@')) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const success = await register({
-        name: formData.name,
-        email: formData.email,
-        location: formData.location,
+      const payload: any = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         skillsOffered: [],
         skillsWanted: [],
-        availability: []
-      });
+        availability: ""
+      };
+      
+      // Only add location if it's valid
+      if (formData.location.trim().length >= 2) {
+        payload.location = formData.location.trim();
+      }
+
+      console.log('Sending registration payload:', payload);
+      const success = await register(payload);
 
       if (success) {
         navigate('/profile?setup=true');
       } else {
-        setError('An account with this email already exists');
+        setError('Registration failed. Please try again.');
       }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

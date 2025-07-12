@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { apiService } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: Partial<User> & { password: string }) => Promise<boolean>;
   logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
+  updateUser: (userData: Partial<User>) => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,86 +23,70 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Check for existing token and validate it on app start
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const currentUser = await apiService.getCurrentUser();
+          setUser(currentUser);
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          apiService.clearToken();
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const foundUser = users.find((u: User & { password: string }) => 
-      u.email === email && u.password === password
-    );
-
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    try {
+      const response = await apiService.login(email, password);
+      apiService.setToken(response.token);
+      setUser(response.user);
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return false;
   };
 
   const register = async (userData: Partial<User> & { password: string }): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const existingUser = users.find((u: User) => u.email === userData.email);
-
-    if (existingUser) {
+    try {
+      const response = await apiService.register(userData);
+      apiService.setToken(response.token);
+      setUser(response.user);
+      return true;
+    } catch (error) {
+      console.error('Registration failed:', error);
       return false;
     }
-
-    const newUser: User & { password: string } = {
-      id: Date.now().toString(),
-      name: userData.name || '',
-      email: userData.email || '',
-      location: userData.location,
-      profilePhoto: userData.profilePhoto,
-      skillsOffered: userData.skillsOffered || [],
-      skillsWanted: userData.skillsWanted || [],
-      availability: userData.availability || [],
-      isPublic: true,
-      rating: 5.0,
-      completedSwaps: 0,
-      joinedDate: new Date().toISOString(),
-      isAdmin: users.length === 0, // First user is admin
-      isBanned: false,
-      password: userData.password
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    return true;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('currentUser');
+    apiService.clearToken();
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (!user) return;
 
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex((u: User) => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...userData };
-      localStorage.setItem('users', JSON.stringify(users));
+    try {
+      const updatedUser = await apiService.updateUser(user.id, userData);
+      setUser(updatedUser);
+    } catch (error) {
+      console.error('User update failed:', error);
+      throw error;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

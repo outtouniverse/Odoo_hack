@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { generateToken, hashPassword, comparePassword } = require('../middleware/auth');
+const { generateToken, hashPassword, comparePassword, verifyToken } = require('../middleware/auth');
 const { validateRegistration, validateLogin } = require('../middleware/validation');
 
 // Register new user
@@ -31,7 +31,18 @@ router.post('/register', validateRegistration, async (req, res) => {
     const userData = {
       email,
       password: hashedPassword,
-      name
+      name,
+      location: req.body.location,
+      profilePhoto: req.body.profilePhoto,
+      skillsOffered: req.body.skillsOffered || [],
+      skillsWanted: req.body.skillsWanted || [],
+      availability: req.body.availability,
+      isPublic: req.body.isPublic !== undefined ? req.body.isPublic : true,
+      rating: 5.0,
+      completedSwaps: 0,
+      joinedDate: new Date(),
+      isAdmin: false,
+      isBanned: false
     };
 
     if (username) {
@@ -51,6 +62,17 @@ router.post('/register', validateRegistration, async (req, res) => {
       email: user.email,
       name: user.name,
       username: user.username,
+      location: user.location,
+      profilePhoto: user.profilePhoto,
+      skillsOffered: user.skillsOffered || [],
+      skillsWanted: user.skillsWanted || [],
+      availability: user.availability,
+      isPublic: user.isPublic,
+      rating: user.rating,
+      completedSwaps: user.completedSwaps,
+      joinedDate: user.joinedDate,
+      isAdmin: user.isAdmin,
+      isBanned: user.isBanned,
       role: user.role,
       createdAt: user.createdAt
     };
@@ -80,7 +102,7 @@ router.post('/login', validateLogin, async (req, res) => {
     }
 
     // Check if user is banned
-    if (user.banned) {
+    if (user.isBanned) {
       return res.status(403).json({ error: 'Account has been banned' });
     }
 
@@ -100,6 +122,17 @@ router.post('/login', validateLogin, async (req, res) => {
       email: user.email,
       name: user.name,
       username: user.username,
+      location: user.location,
+      profilePhoto: user.profilePhoto,
+      skillsOffered: user.skillsOffered || [],
+      skillsWanted: user.skillsWanted || [],
+      availability: user.availability,
+      isPublic: user.isPublic,
+      rating: user.rating,
+      completedSwaps: user.completedSwaps,
+      joinedDate: user.joinedDate,
+      isAdmin: user.isAdmin,
+      isBanned: user.isBanned,
       role: user.role,
       createdAt: user.createdAt
     };
@@ -116,23 +149,14 @@ router.post('/login', validateLogin, async (req, res) => {
 });
 
 // Get current user profile
-router.get('/me', async (req, res) => {
+router.get('/me', verifyToken, async (req, res) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(req.user.userId).select('-password');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user });
+    res.json(user);
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: 'Server error' });

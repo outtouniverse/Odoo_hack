@@ -1,84 +1,113 @@
-# Skill Swap Platform
+# Skill Swap Platform - Full Stack Application
 
-A full-stack application for skill swapping between users, built with React frontend and Node.js backend.
+A modern skill exchange platform built with React TypeScript frontend and Node.js Express backend with MongoDB.
 
-TEAM MEMBER DETAILS:
-TULIP JANI -- tkjani20@gmail.com
-JINAL RATHVA -- jilu.jr11@gmail.com
-AAKANKSHA BOSMIYA -- aakub1096@gmail.com
+## 🚀 Quick Start
 
-
-
-
-## Project Structure
-
-```
-Odoo_hack/
-├── Backend/          # Node.js/Express backend
-├── client/           # React frontend
-└── README.md
-```
-
-## Features
-
-- User authentication (login/register)
-- User profile management
-- Skill swapping functionality
-- Real-time communication
-- Responsive design
-
-## Prerequisites
-
-- Node.js (v14 or higher)
-- MongoDB database
+### Prerequisites
+- Node.js (v16 or higher)
+- MongoDB (local or Atlas)
 - npm or yarn
 
-## Setup Instructions
+### Backend Setup
 
-### 1. Backend Setup
-
-1. Navigate to the backend directory:
+1. **Navigate to backend directory:**
    ```bash
-   cd Odoo_hack/Backend
+   cd Backend
    ```
 
-2. Install dependencies:
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. Configure environment variables:
-   - The `config.env` file is already configured with MongoDB connection
-   - JWT_SECRET is set for authentication
-   - PORT is set to 5001
+3. **Configure environment variables:**
+   - Copy `config.env` and update with your MongoDB URI
+   - Update JWT_SECRET for production
 
-4. Start the backend server:
-   ```bash
-   npm start
-   ```
-
-The backend will run on `http://localhost:5001`
-
-### 2. Frontend Setup
-
-1. Navigate to the client directory:
-   ```bash
-   cd Odoo_hack/client
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
+4. **Start the backend server:**
    ```bash
    npm run dev
    ```
+   The backend will run on `http://localhost:5001`
 
-The frontend will run on `http://localhost:3000`
+### Frontend Setup
 
-## API Endpoints
+1. **Navigate to frontend directory:**
+   ```bash
+   cd project
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+   The frontend will run on `http://localhost:5173`
+
+## 🔧 Configuration
+
+### Backend Environment Variables (`Backend/config.env`)
+```
+PORT=5001
+JWT_SECRET=your-secret-key-here
+NODE_ENV=development
+MONGO_URI=your-mongodb-connection-string
+```
+
+### Frontend Configuration
+The frontend is configured to connect to `http://localhost:5001/api` by default.
+
+## 🏗️ Architecture
+
+### Backend Structure
+```
+Backend/
+├── config/
+│   ├── db.js          # Database connection
+│   └── config.env     # Environment variables
+├── middleware/
+│   ├── auth.js        # JWT authentication
+│   └── validation.js  # Request validation
+├── models/
+│   ├── User.js        # User model
+│   ├── Skill.js       # Skill model
+│   └── Swap.js        # Swap model
+├── routes/
+│   ├── auth.js        # Authentication routes
+│   ├── users.js       # User management
+│   ├── skills.js      # Skill management
+│   └── swaps.js       # Swap management
+└── server.js          # Main server file
+```
+
+### Frontend Structure
+```
+project/
+├── src/
+│   ├── components/    # Reusable components
+│   ├── contexts/      # React contexts
+│   ├── pages/         # Page components
+│   ├── services/      # API services
+│   └── types/         # TypeScript types
+└── package.json
+```
+
+## 🔐 Authentication
+
+The application uses JWT (JSON Web Tokens) for authentication:
+
+- **Registration**: Creates new user account
+- **Login**: Authenticates user and returns JWT token
+- **Token Storage**: JWT stored in localStorage
+- **Auto-refresh**: Token automatically included in API requests
+- **Logout**: Clears token from localStorage
+
+## 🌐 API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
@@ -88,52 +117,95 @@ The frontend will run on `http://localhost:3000`
 ### Users
 - `GET /api/users` - Get all users
 - `GET /api/users/:id` - Get user by ID
-- `PUT /api/users/profile` - Update user profile
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
 
 ### Skills
 - `GET /api/skills` - Get all skills
 - `POST /api/skills` - Create new skill
+- `PUT /api/skills/:id` - Update skill
+- `DELETE /api/skills/:id` - Delete skill
 
 ### Swaps
 - `GET /api/swaps` - Get all swaps
-- `POST /api/swaps` - Create new swap
+- `POST /api/swaps` - Create swap request
+- `PUT /api/swaps/:id` - Update swap
+- `DELETE /api/swaps/:id` - Delete swap
 
-## Usage
+## 🛡️ Security Features
 
-1. Open your browser and go to `http://localhost:3000`
-2. Register a new account or login with existing credentials
-3. Browse available skills and users
-4. Request skill swaps with other users
+- **CORS**: Configured for development and production
+- **Rate Limiting**: Prevents abuse
+- **Input Validation**: All inputs validated
+- **Password Hashing**: bcrypt for password security
+- **JWT Authentication**: Secure token-based auth
+- **Helmet**: Security headers
+- **MongoDB**: NoSQL database with validation
 
-## Technologies Used
+## 🧪 Testing
 
-### Backend
-- Node.js
-- Express.js
-- MongoDB with Mongoose
-- JWT for authentication
-- bcrypt for password hashing
-- CORS for cross-origin requests
+### Backend Testing
+```bash
+cd Backend
+node test-connection.js
+```
 
-### Frontend
-- React
-- React Router for navigation
-- Tailwind CSS for styling
-- Context API for state management
-- Fetch API for HTTP requests
+### Frontend Testing
+The frontend includes comprehensive error handling and loading states.
 
-## Development
+## 🚀 Deployment
 
-- Backend runs on port 5001
-- Frontend runs on port 3000
-- CORS is configured to allow frontend-backend communication
-- JWT tokens are stored in localStorage for authentication
+### Backend Deployment
+1. Set `NODE_ENV=production`
+2. Update CORS origins
+3. Use environment variables for secrets
+4. Deploy to your preferred platform (Heroku, Vercel, etc.)
 
-## Security Features
+### Frontend Deployment
+1. Build the project: `npm run build`
+2. Deploy the `dist` folder to your hosting platform
 
-- Password hashing with bcrypt
-- JWT token authentication
-- Input validation
-- Rate limiting
-- CORS protection
-- Helmet for security headers 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **CORS Errors**
+   - Ensure backend is running on port 5001
+   - Check CORS configuration in `server.js`
+
+2. **JWT Errors**
+   - Verify JWT_SECRET is set
+   - Check token expiration
+
+3. **Database Connection**
+   - Verify MongoDB URI is correct
+   - Check network connectivity
+
+4. **Port Conflicts**
+   - Backend: 5001
+   - Frontend: 5173
+   - Ensure ports are available
+
+### Debug Mode
+- Backend includes debug endpoint: `GET /api/debug`
+- Frontend includes comprehensive error logging
+
+## 📝 License
+
+This project is licensed under the MIT License.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📞 Support
+
+For issues and questions:
+1. Check the troubleshooting section
+2. Review the API documentation
+3. Check console logs for errors
+4. Verify environment configuration 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, AlertCircle, UserCheck } from 'lucide-react';
@@ -19,15 +19,29 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     setError('');
 
+    // Frontend validation
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.password.trim()) {
+      setError('Password is required');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const success = await login(formData.email, formData.password);
+      const success = await login(formData.email.trim().toLowerCase(), formData.password);
       if (success) {
         navigate('/dashboard');
       } else {
         setError('Invalid email or password');
       }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

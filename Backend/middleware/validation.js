@@ -8,7 +8,8 @@ const handleValidationErrors = (req, res, next) => {
     console.log('Request body:', req.body);
     return res.status(400).json({ 
       error: 'Validation failed',
-      details: errors.array()
+      details: errors.array(),
+      message: errors.array().map(err => `${err.param}: ${err.msg}`).join(', ')
     });
   }
   next();
@@ -27,10 +28,17 @@ const validateRegistration = [
     .withMessage('Password must be at least 6 characters long'),
   body('email')
     .isEmail()
-    .withMessage('Please provide a valid email address'),
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
   body('name')
+    .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Name must be between 2 and 50 characters'),
+  body('location')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Location must be between 2 and 100 characters'),
   handleValidationErrors
 ];
 
@@ -38,7 +46,8 @@ const validateRegistration = [
 const validateLogin = [
   body('email')
     .isEmail()
-    .withMessage('Please provide a valid email address'),
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
   body('password')
     .notEmpty()
     .withMessage('Password is required'),

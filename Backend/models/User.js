@@ -11,8 +11,12 @@ const UserSchema = new mongoose.Schema({
   skillsWanted: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
   availability: { type: String, maxlength: 200 },
   isPublic: { type: Boolean, default: true },
+  rating: { type: Number, default: 5.0, min: 0, max: 5 },
+  completedSwaps: { type: Number, default: 0 },
+  joinedDate: { type: Date, default: Date.now },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
-  banned: { type: Boolean, default: false },
+  isAdmin: { type: Boolean, default: false },
+  isBanned: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

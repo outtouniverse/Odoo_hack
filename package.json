@@ -1,0 +1,31 @@
+{
+  "name": "skill-swap-platform",
+  "version": "1.0.0",
+  "description": "Full-stack skill exchange platform",
+  "main": "start-dev.js",
+  "scripts": {
+    "dev": "node start-dev.js",
+    "backend": "cd Backend && npm run dev",
+    "frontend": "cd project && npm run dev",
+    "install:all": "npm install && cd Backend && npm install && cd ../project && npm install",
+    "build": "cd project && npm run build",
+    "test": "cd Backend && npm run test:connection",
+    "start": "cd Backend && npm start"
+  },
+  "keywords": [
+    "skill-swap",
+    "react",
+    "nodejs",
+    "express",
+    "mongodb",
+    "typescript"
+  ],
+  "author": "Skill Swap Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/history": "^4.7.11",
+    "@types/node": "^24.0.13",
+    "@types/prop-types": "^15.7.15",
+    "concurrently": "^8.2.2"
+  }
+}
