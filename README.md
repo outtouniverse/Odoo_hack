@@ -2,6 +2,14 @@
 
 A full-stack application for skill swapping between users, built with React frontend and Node.js backend.
 
+TEAM MEMBER DETAILS:
+TULIP JANI -- tkjani20@gmail.com
+JINAL RATHVA -- jilu.jr11@gmail.com
+AAKANKSHA BOSMIYA -- aakub1096@gmail.com
+
+
+
+
 ## Project Structure
 
 ```
