@@ -109,14 +109,30 @@ const validateProfileUpdate = [
   body('availability')
     .optional()
     .custom((value) => {
-      // Allow empty string or strings between 5-200 characters
+      console.log('Validating availability:', value, typeof value);
+      
+      // Allow array of strings or empty array
+      if (Array.isArray(value)) {
+        console.log('Availability is array, length:', value.length);
+        // Filter out empty strings and validate each item in the array
+        const filteredValue = value.filter(item => item && item.trim() !== '');
+        console.log('Filtered availability array:', filteredValue);
+        
+        for (const item of filteredValue) {
+          console.log('Validating item:', item, 'length:', item.length);
+          if (typeof item !== 'string' || item.length < 5 || item.length > 200) {
+            throw new Error(`Each availability item must be between 5 and 200 characters. Got: "${item}" (${item.length} chars)`);
+          }
+        }
+        return true;
+      }
+      // Allow empty/null values
       if (value === '' || value === undefined || value === null) {
+        console.log('Availability is empty/null, allowing');
         return true;
       }
-      if (typeof value === 'string' && value.length >= 5 && value.length <= 200) {
-        return true;
-      }
-      throw new Error('Availability must be empty or between 5 and 200 characters');
+      console.log('Availability is not array, not empty:', value);
+      throw new Error('Availability must be an array of strings');
     }),
   body('isPublic')
     .optional()

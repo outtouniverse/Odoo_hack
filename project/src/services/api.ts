@@ -118,6 +118,13 @@ class ApiService {
     });
   }
 
+  async uploadProfilePhoto(photoData: { photoData: string }) {
+    return this.request<any>('/users/upload-photo', {
+      method: 'POST',
+      data: photoData,
+    });
+  }
+
   async updateUserSkills(skillsData: any) {
     return this.request<any>('/users/skills', {
       method: 'PUT',

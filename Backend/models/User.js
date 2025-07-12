@@ -6,10 +6,10 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true, minlength: 2, maxlength: 50 },
   location: { type: String, maxlength: 100 },
-  profilePhoto: { type: String }, // URL or file path
+  profilePhoto: { type: String }, // Base64 image data or URL
   skillsOffered: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
   skillsWanted: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Skill' }],
-  availability: { type: String, maxlength: 200, default: '' },
+  availability: [{ type: String, maxlength: 200 }], // Array of availability strings
   isPublic: { type: Boolean, default: true },
   rating: { type: Number, default: 5.0, min: 0, max: 5 },
   completedSwaps: { type: Number, default: 0 },

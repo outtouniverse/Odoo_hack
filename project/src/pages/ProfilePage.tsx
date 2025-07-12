@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { User, Mail, MapPin, Plus, X, Camera, Globe, Lock, Clock, Save } from 'lucide-react';
+import { User, Mail, MapPin, Plus, X, Camera, Globe, Lock, Clock, Save, Upload } from 'lucide-react';
 import SkillTag from '../components/SkillTag';
 import { apiService } from '../services/api';
 
 const ProfilePage: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isSetup = searchParams.get('setup') === 'true';
@@ -32,6 +32,9 @@ const ProfilePage: React.FC = () => {
   const [newAvailability, setNewAvailability] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const availabilityOptions = [
     'Weekday Mornings (9AM-12PM)',
@@ -43,6 +46,80 @@ const ProfilePage: React.FC = () => {
     'Flexible Schedule',
     'By Appointment Only'
   ];
+
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (JPEG, PNG, GIF, etc.)');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+      
+      setSelectedFile(file);
+      
+      // Create preview URL
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
+    
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const photoData = e.target?.result as string;
+        
+        try {
+          // Upload photo data to backend
+          const response = await apiService.uploadProfilePhoto({ photoData });
+          
+          // Update form data with the uploaded photo URL
+          setFormData(prev => ({
+            ...prev,
+            profilePhoto: response.photoUrl
+          }));
+          
+          // Clear selected file and preview
+          setSelectedFile(null);
+          setPreviewUrl('');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          
+          alert('Profile photo uploaded successfully!');
+        } catch (error: any) {
+          console.error('Failed to upload photo:', error);
+          alert(`Failed to upload photo: ${error.message}`);
+        }
+      };
+      
+      reader.readAsDataURL(selectedFile);
+    } catch (error: any) {
+      console.error('Failed to process photo:', error);
+      alert(`Failed to process photo: ${error.message}`);
+    }
+  };
+
+  // Remove selected file
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setPreviewUrl('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +136,7 @@ const ProfilePage: React.FC = () => {
         name: formData.name,
         location: formData.location,
         profilePhoto: formData.profilePhoto,
-        availability: formData.availability.length > 0 ? formData.availability.join(', ') : '', // Convert array to string, empty if no availability
+        availability: formData.availability, // Send as array
         isPublic: formData.isPublic
       };
 
@@ -130,7 +207,7 @@ const ProfilePage: React.FC = () => {
   };
 
   const addAvailability = async () => {
-    if (newAvailability && !formData.availability.includes(newAvailability)) {
+    if (newAvailability && newAvailability.trim() !== '' && !formData.availability.includes(newAvailability)) {
       try {
         const updatedAvailability = [...formData.availability, newAvailability];
         
@@ -140,12 +217,18 @@ const ProfilePage: React.FC = () => {
         // Update availability in database
         if (user) {
           const availabilityData = {
-            availability: updatedAvailability.length > 0 ? updatedAvailability.join(', ') : ''
+            availability: updatedAvailability
           };
           console.log('Sending availability data:', availabilityData);
+          console.log('Availability array type:', Array.isArray(updatedAvailability));
+          console.log('Availability array length:', updatedAvailability.length);
           
-          await apiService.updateUser(user.id, availabilityData);
-          console.log('Availability updated successfully');
+          const response = await apiService.updateUser(user.id, availabilityData);
+          console.log('Availability update response:', response);
+          console.log('Response availability:', response.availability);
+          
+          // Refresh user data from database to ensure we have the latest
+          await refreshUser();
         }
         
         setFormData({
@@ -196,12 +279,18 @@ const ProfilePage: React.FC = () => {
       // Update availability in database
       if (user) {
         const availabilityData = {
-          availability: updatedAvailability.length > 0 ? updatedAvailability.join(', ') : ''
+          availability: updatedAvailability
         };
         console.log('Sending availability data:', availabilityData);
+        console.log('Availability array type:', Array.isArray(updatedAvailability));
+        console.log('Availability array length:', updatedAvailability.length);
         
-        await apiService.updateUser(user.id, availabilityData);
-        console.log('Availability updated successfully');
+        const response = await apiService.updateUser(user.id, availabilityData);
+        console.log('Availability update response:', response);
+        console.log('Response availability:', response.availability);
+        
+        // Refresh user data from database to ensure we have the latest
+        await refreshUser();
       }
       
       setFormData({
@@ -248,11 +337,19 @@ const ProfilePage: React.FC = () => {
       
       // Load availability from user data
       if (user.availability) {
-        const availabilityArray = user.availability.split(', ').filter((item: string) => item.trim() !== '');
-        setFormData(prev => ({
-          ...prev,
-          availability: availabilityArray
-        }));
+        if (Array.isArray(user.availability)) {
+          setFormData(prev => ({
+            ...prev,
+            availability: user.availability as unknown as string[]
+          }));
+        } else if (typeof user.availability === 'string') {
+          // Handle legacy string format
+          const availabilityArray = user.availability.split(', ').filter((item: string) => item.trim() !== '');
+          setFormData(prev => ({
+            ...prev,
+            availability: availabilityArray
+          }));
+        }
       }
     }
   }, [user]);
@@ -351,17 +448,73 @@ const ProfilePage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Profile Photo URL (Optional)
+                    Profile Photo
                   </label>
-                  <div className="relative">
-                    <Camera className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  
+                  {/* Current Profile Photo */}
+                  {formData.profilePhoto && (
+                    <div className="mb-4">
+                      <img
+                        src={formData.profilePhoto}
+                        alt="Current profile"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* File Upload Interface */}
+                  <div className="space-y-3">
+                    {/* Hidden file input */}
                     <input
-                      type="url"
-                      value={formData.profilePhoto}
-                      onChange={(e) => setFormData({ ...formData, profilePhoto: e.target.value })}
-                      className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="https://example.com/photo.jpg"
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
                     />
+                    
+                    {/* Upload button */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <Upload className="h-5 w-5 mr-2 text-gray-400" />
+                      <span className="text-gray-600">Browse and select photo</span>
+                    </button>
+                    
+                    {/* File preview and upload */}
+                    {selectedFile && (
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-16 h-16 rounded-full object-cover"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveFile}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleFileUpload}
+                          className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                          Upload Photo
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

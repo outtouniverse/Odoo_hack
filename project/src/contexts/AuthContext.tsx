@@ -7,7 +7,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: Partial<User> & { password: string }) => Promise<boolean>;
   logout: () => void;
-  updateUser: (userData: Partial<User>) => Promise<void>;
+  updateUser: (userData: Partial<User> | User) => Promise<void>;
+  refreshUser: () => Promise<void>;
   loading: boolean;
 }
 
@@ -73,20 +74,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     apiService.clearToken();
   };
 
-  const updateUser = async (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User> | User) => {
     if (!user) return;
 
     try {
-      const updatedUser = await apiService.updateUser(user.id, userData);
-      setUser(updatedUser);
+      // If userData is a complete user object, use it directly
+      if ('id' in userData && 'email' in userData) {
+        setUser(userData as User);
+      } else {
+        // Otherwise, update via API
+        const updatedUser = await apiService.updateUser(user.id, userData);
+        setUser(updatedUser);
+      }
     } catch (error) {
       console.error('User update failed:', error);
       throw error;
     }
   };
 
+  const refreshUser = async () => {
+    if (!user) return;
+
+    try {
+      const currentUser = await apiService.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
