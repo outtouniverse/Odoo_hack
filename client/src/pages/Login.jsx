@@ -8,6 +8,10 @@ const Login = () => {
     window.location.href = '/';
   };
 
+  const goToRegister = () => {
+    window.location.href = '/register';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -21,7 +25,7 @@ const Login = () => {
             onClick={goToHome}
             className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-full text-sm transition-colors"
           >
-            Home
+            Back to Home
           </button>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-8 mt-4">
@@ -55,10 +59,19 @@ const Login = () => {
               Login
             </button>
 
-            <div className="text-center">
+            <div className="text-center mt-4"> {/* Added margin-top for spacing */}
               <button className="text-indigo-600 hover:text-indigo-700 text-sm transition-colors">
                 Forgot username/password
               </button>
+              <p className="text-gray-600 text-sm mt-2"> {/* Added paragraph for "Don't have an account?" */}
+                Don't have an account?{' '}
+                <button
+                  onClick={goToRegister}
+                  className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  Register here
+                </button>
+              </p>
             </div>
           </div>
         </div>

@@ -7,6 +7,10 @@ const Home = () => {
     window.location.href = '/login';
   };
 
+  const goToRegister = () => {
+    window.location.href = '/register';
+  };
+
   const users = [
     {
       id: 1,
@@ -39,12 +43,20 @@ const Home = () => {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Skill Swap Platform</h1>
             
-            <button 
-              onClick={goToLogin}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-            >
-              Login
-            </button>
+            <div className="flex space-x-4"> {/* Added a div for multiple buttons */}
+              <button 
+                onClick={goToLogin}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Login
+              </button>
+              <button 
+                onClick={goToRegister}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Register
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -70,7 +82,7 @@ const Home = () => {
                 placeholder="Search skills..."
               />
               <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-r-lg transition-colors">
-                search
+                Search
               </button>
             </div>
           </div>
