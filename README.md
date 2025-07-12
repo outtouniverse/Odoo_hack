@@ -42,14 +42,14 @@ Odoo_hack/
 3. Configure environment variables:
    - The `config.env` file is already configured with MongoDB connection
    - JWT_SECRET is set for authentication
-   - PORT is set to 5000
+   - PORT is set to 5001
 
 4. Start the backend server:
    ```bash
    npm start
    ```
 
-The backend will run on `http://localhost:5000`
+The backend will run on `http://localhost:5001`
 
 ### 2. Frontend Setup
 
@@ -116,7 +116,7 @@ The frontend will run on `http://localhost:3000`
 
 ## Development
 
-- Backend runs on port 5000
+- Backend runs on port 5001
 - Frontend runs on port 3000
 - CORS is configured to allow frontend-backend communication
 - JWT tokens are stored in localStorage for authentication

@@ -5,12 +5,12 @@ async function testServer() {
     console.log('Testing backend server...');
     
     // Test health endpoint
-    const healthResponse = await fetch('http://localhost:5000/api/health');
+    const healthResponse = await fetch('http://localhost:5001/api/health');
     const healthData = await healthResponse.json();
     console.log('Health check:', healthData);
     
     // Test debug endpoint
-    const debugResponse = await fetch('http://localhost:5000/api/debug');
+    const debugResponse = await fetch('http://localhost:5001/api/debug');
     const debugData = await debugResponse.json();
     console.log('Debug check:', debugData);
     

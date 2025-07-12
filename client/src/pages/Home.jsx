@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const { user, isAuthenticated, logout } = useAuth(); // Get user, isAuthenticated, and logout from AuthContext
 
   const goToLogin = () => {
     window.location.href = '/login';
@@ -9,6 +11,19 @@ const Home = () => {
 
   const goToRegister = () => {
     window.location.href = '/register';
+  };
+
+  const goToProfile = () => {
+    window.location.href = '/profile';
+  };
+
+  const goToViewRequests = () => {
+    window.location.href = '/view-request';
+  };
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/'; // Redirect to home after logout
   };
 
   const users = [
@@ -91,45 +106,111 @@ const Home = () => {
             </div>
             
             <div className="flex space-x-3">
-              <button 
-                onClick={goToLogin}
-                className="text-white px-6 py-2.5 rounded-xl font-bold transition-all duration-300 border-2"
-                style={{ 
-                  backgroundColor: '#8B7765',
-                  borderColor: '#5D4E42',
-                  boxShadow: '0 4px 12px rgba(139, 119, 101, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#5D4E42';
-                  e.target.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#8B7765';
-                  e.target.style.transform = 'translateY(0)';
-                }}
-              >
-                Login
-              </button>
-              <button 
-                onClick={goToRegister}
-                className="px-6 py-2.5 rounded-xl font-bold transition-all duration-300 border-2"
-                style={{ 
-                  backgroundColor: '#F5F1E8', 
-                  color: '#1A1A1A',
-                  borderColor: '#B8A082',
-                  boxShadow: '0 4px 12px rgba(184, 160, 130, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#EAE5D8';
-                  e.target.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#F5F1E8';
-                  e.target.style.transform = 'translateY(0)';
-                }}
-              >
-                Register
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <span className="text-gray-800 font-semibold py-2.5">Welcome, {user.username || user.name}!</span>
+                  <button 
+                    onClick={goToProfile}
+                    className="text-white px-6 py-2.5 rounded-xl font-bold transition-all duration-300 border-2"
+                    style={{ 
+                      backgroundColor: '#8B7765',
+                      borderColor: '#5D4E42',
+                      boxShadow: '0 4px 12px rgba(139, 119, 101, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#5D4E42';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#8B7765';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    Profile
+                  </button>
+                  <button 
+                    onClick={goToViewRequests}
+                    className="px-6 py-2.5 rounded-xl font-bold transition-all duration-300 border-2"
+                    style={{ 
+                      backgroundColor: '#F5F1E8', 
+                      color: '#1A1A1A',
+                      borderColor: '#B8A082',
+                      boxShadow: '0 4px 12px rgba(184, 160, 130, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#EAE5D8';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#F5F1E8';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    Requests
+                  </button>
+                  <button 
+                    onClick={handleLogout}
+                    className="text-white px-6 py-2.5 rounded-xl font-bold transition-all duration-300 border-2"
+                    style={{ 
+                      backgroundColor: '#DC3545', // A red color for logout
+                      borderColor: '#BD2130',
+                      boxShadow: '0 4px 12px rgba(220, 53, 69, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#BD2130';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#DC3545';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={goToLogin}
+                    className="text-white px-6 py-2.5 rounded-xl font-bold transition-all duration-300 border-2"
+                    style={{ 
+                      backgroundColor: '#8B7765',
+                      borderColor: '#5D4E42',
+                      boxShadow: '0 4px 12px rgba(139, 119, 101, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#5D4E42';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#8B7765';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    Login
+                  </button>
+                  <button 
+                    onClick={goToRegister}
+                    className="px-6 py-2.5 rounded-xl font-bold transition-all duration-300 border-2"
+                    style={{ 
+                      backgroundColor: '#F5F1E8', 
+                      color: '#1A1A1A',
+                      borderColor: '#B8A082',
+                      boxShadow: '0 4px 12px rgba(184, 160, 130, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#EAE5D8';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#F5F1E8';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    Register
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -265,7 +346,7 @@ const Home = () => {
             </div>
 
             <button 
-              onClick={goToLogin}
+              onClick={isAuthenticated ? goToProfile : goToLogin}
               className="w-full text-white py-4 rounded-xl font-black transition-all duration-300 border-2 text-lg"
               style={{ 
                 backgroundColor: '#8B7765',
@@ -281,7 +362,7 @@ const Home = () => {
                 e.target.style.transform = 'translateY(0)';
               }}
             >
-              Connect & Swap Skills
+              {isAuthenticated ? 'View Profile' : 'Connect & Swap Skills'}
             </button>
           </div>
 
@@ -348,7 +429,7 @@ const Home = () => {
             </div>
 
             <button 
-              onClick={goToLogin}
+              onClick={isAuthenticated ? goToProfile : goToLogin}
               className="w-full text-white py-3 rounded-xl font-bold transition-all duration-300 border-2"
               style={{ 
                 backgroundColor: '#8B7765',
@@ -361,7 +442,7 @@ const Home = () => {
                 e.target.style.backgroundColor = '#8B7765';
               }}
             >
-              Connect & Swap Skills
+              {isAuthenticated ? 'View Profile' : 'Connect & Swap Skills'}
             </button>
           </div>
 
@@ -434,7 +515,7 @@ const Home = () => {
               </div>
 
               <button 
-                onClick={goToLogin}
+                onClick={isAuthenticated ? goToProfile : goToLogin}
                 className="w-full text-white py-3 rounded-xl font-bold transition-all duration-300 border-2"
                 style={{ 
                   backgroundColor: '#8B7765',
@@ -447,7 +528,7 @@ const Home = () => {
                   e.target.style.backgroundColor = '#8B7765';
                 }}
               >
-                Connect & Swap Skills
+                {isAuthenticated ? 'View Profile' : 'Connect & Swap Skills'}
               </button>
             </div>
           ))}
