@@ -22,8 +22,19 @@ const BrowseSkillsPage: React.FC = () => {
     const publicUsers = users.filter((u: User) => 
       u.id !== user?.id && u.isPublic && !u.isBanned
     );
-    setAllUsers(publicUsers);
-    setFilteredUsers(publicUsers);
+    
+    // Normalize availability format - convert string to array if needed
+    const normalizedUsers = publicUsers.map((u: any) => ({
+      ...u,
+      availability: Array.isArray(u.availability) 
+        ? u.availability 
+        : typeof u.availability === 'string'
+          ? u.availability.split(', ').filter((item: string) => item.trim() !== '')
+          : []
+    })) as User[];
+    
+    setAllUsers(normalizedUsers);
+    setFilteredUsers(normalizedUsers);
   }, [user]);
 
   useEffect(() => {
@@ -264,7 +275,7 @@ const BrowseSkillsPage: React.FC = () => {
                   )}
 
                   {/* Availability */}
-                  {targetUser.availability.length > 0 && (
+                  {targetUser.availability && targetUser.availability.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">Availability:</h4>
                       <p className="text-sm text-gray-600">

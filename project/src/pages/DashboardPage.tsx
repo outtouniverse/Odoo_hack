@@ -210,13 +210,13 @@ const DashboardPage: React.FC = () => {
                 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Availability</span>
-                  <span className={`text-sm font-medium ${user.availability.length > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {user.availability.length > 0 ? 'Complete' : 'Incomplete'}
+                  <span className={`text-sm font-medium ${user.availability && user.availability.length > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {user.availability && user.availability.length > 0 ? 'Complete' : 'Incomplete'}
                   </span>
                 </div>
               </div>
 
-              {(user.skillsOffered.length === 0 || user.skillsWanted.length === 0 || user.availability.length === 0) && (
+              {(user.skillsOffered.length === 0 || user.skillsWanted.length === 0 || !user.availability || user.availability.length === 0) && (
                 <Link
                   to="/profile"
                   className="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors text-center block"
