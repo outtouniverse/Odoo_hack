@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { SwapRequest, Feedback } from '../types';
 import { X, Star, Send } from 'lucide-react';
+import { apiService } from '../services/api';
 
 interface FeedbackModalProps {
   swapRequest: SwapRequest;
@@ -20,46 +21,45 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     setLoading(true);
+    setError('');
 
     try {
-      const existingFeedback = JSON.parse(localStorage.getItem('feedback') || '[]');
-      
-      const newFeedback: Feedback = {
-        id: Date.now().toString(),
+      // Determine the target user (the other person in the swap)
+      const targetUserId = swapRequest.fromUserId === user.id 
+        ? swapRequest.toUserId 
+        : swapRequest.fromUserId;
+
+      console.log('Submitting feedback:', {
         swapId: swapRequest.id,
-        fromUserId: user.id,
-        toUserId: swapRequest.fromUserId === user.id ? swapRequest.toUserId : swapRequest.fromUserId,
+        toUserId: targetUserId,
         rating,
-        comment: comment.trim(),
-        createdAt: new Date().toISOString()
+        comment: comment.trim()
+      });
+
+      // Submit feedback via API
+      const feedbackData = {
+        swapId: swapRequest.id,
+        toUserId: targetUserId,
+        rating,
+        comment: comment.trim()
       };
 
-      const updatedFeedback = [...existingFeedback, newFeedback];
-      localStorage.setItem('feedback', JSON.stringify(updatedFeedback));
+      const newFeedback = await apiService.createFeedback(feedbackData);
 
-      // Update the target user's rating
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const targetUserId = newFeedback.toUserId;
-      const userFeedback = updatedFeedback.filter((f: Feedback) => f.toUserId === targetUserId);
-      const averageRating = userFeedback.reduce((acc: number, f: Feedback) => acc + f.rating, 0) / userFeedback.length;
-
-      const updatedUsers = users.map((u: any) => 
-        u.id === targetUserId 
-          ? { ...u, rating: averageRating, completedSwaps: u.completedSwaps + 1 }
-          : u
-      );
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
+      console.log('Feedback submitted successfully:', newFeedback);
 
       onSuccess();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to submit feedback:', err);
+      setError(err.message || 'Failed to submit feedback. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -83,6 +83,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+
           {/* Rating */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">

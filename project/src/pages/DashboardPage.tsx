@@ -11,28 +11,88 @@ import {
   Calendar,
   ArrowRight,
   User as UserIcon,
-  Award
+  Award,
+  Loader2
 } from 'lucide-react';
 import SkillTag from '../components/SkillTag';
+import { apiService } from '../services/api';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      // Load swap requests
-      const requests = JSON.parse(localStorage.getItem('swapRequests') || '[]');
-      const userRequests = requests.filter((req: SwapRequest) => 
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch swap requests from API
+      const requests = await apiService.getSwaps();
+      
+      // Process swap requests to match expected format
+      const processedRequests = requests.map((req: any) => ({
+        ...req,
+        id: req._id || req.id,
+        fromUserId: req.fromUserId || req.fromUser?._id?.toString() || req.fromUser?.toString() || req.fromUser || 'Unknown',
+        toUserId: req.toUserId || req.toUser?._id?.toString() || req.toUser?.toString() || req.toUser || 'Unknown',
+        skillOffered: req.skillOffered || req.offeredSkill?.name || req.offeredSkill || 'Unknown Skill',
+        skillRequested: req.skillRequested || req.requestedSkill?.name || req.requestedSkill || 'Unknown Skill',
+        status: req.status || 'pending',
+        message: req.message || '',
+        createdAt: req.createdAt || new Date(),
+        updatedAt: req.updatedAt || new Date()
+      }));
+      
+      // Filter requests for current user
+      const userRequests = processedRequests.filter((req: SwapRequest) => 
         req.fromUserId === user.id || req.toUserId === user.id
       );
+      
       setSwapRequests(userRequests);
 
-      // Load all users for recommendations
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      setAllUsers(users.filter((u: User) => u.id !== user.id && u.isPublic && !u.isBanned));
+      // Fetch users for recommendations
+      const users = await apiService.getUsers();
+      
+      // Process users to normalize data format
+      const processedUsers = users.map((u: any) => ({
+        ...u,
+        id: u._id || u.id,
+        name: u.name || 'Unknown User',
+        email: u.email || 'No email',
+        rating: u.rating || 5.0,
+        isBanned: u.isBanned || false,
+        isAdmin: u.isAdmin || false,
+        isPublic: u.isPublic !== false,
+        skillsOffered: Array.isArray(u.skillsOffered) 
+          ? u.skillsOffered.map((skill: any) => typeof skill === 'string' ? skill : skill.name || 'Unknown Skill')
+          : [],
+        skillsWanted: Array.isArray(u.skillsWanted) 
+          ? u.skillsWanted.map((skill: any) => typeof skill === 'string' ? skill : skill.name || 'Unknown Skill')
+          : [],
+        availability: Array.isArray(u.availability) 
+          ? u.availability 
+          : typeof u.availability === 'string'
+            ? u.availability.split(', ').filter((item: string) => item.trim() !== '')
+            : [],
+        profilePhoto: u.profilePhoto || '',
+        completedSwaps: u.completedSwaps || 0
+      })) as User[];
+      
+      setAllUsers(processedUsers.filter((u: User) => u.id !== user.id && u.isPublic && !u.isBanned));
+    } catch (error: any) {
+      setError(error.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, [user]);
 
   if (!user) return null;
@@ -66,7 +126,7 @@ const DashboardPage: React.FC = () => {
     },
     {
       title: 'Pending Requests',
-      value: pendingRequests.length,
+      value: loading ? '...' : pendingRequests.length,
       icon: MessageSquare,
       color: 'from-yellow-400 to-yellow-600',
       bgColor: 'bg-yellow-50'
@@ -147,35 +207,81 @@ const DashboardPage: React.FC = () => {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
-                <Link to="/requests" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  View All
-                </Link>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={fetchData}
+                    disabled={loading}
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Refresh'
+                    )}
+                  </button>
+                  <Link to="/requests" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    View All
+                  </Link>
+                </div>
               </div>
 
-              {recentActivity.length > 0 ? (
+              {loading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-3" />
+                  <p className="text-gray-600">Loading recent activity...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-600">
+                  <p>{error}</p>
+                </div>
+              ) : recentActivity.length > 0 ? (
                 <div className="space-y-4">
-                  {recentActivity.map((request) => (
-                    <div key={request.id} className="flex items-center p-4 border border-gray-100 rounded-lg">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {request.fromUserId === user.id ? 'You requested' : 'Someone requested'}{' '}
-                          <span className="text-blue-600">{request.skillRequested}</span>{' '}
-                          for <span className="text-green-600">{request.skillOffered}</span>
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(request.createdAt).toLocaleDateString()}
-                        </p>
+                  {recentActivity.map((request) => {
+                    const isReceived = request.toUserId === user.id;
+                    const otherUser = allUsers.find(u => 
+                      isReceived ? u.id === request.fromUserId : u.id === request.toUserId
+                    );
+                    
+                    return (
+                      <div key={request.id} className="flex items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-1">
+                            {otherUser?.profilePhoto ? (
+                              <img
+                                src={otherUser.profilePhoto}
+                                alt={otherUser.name}
+                                className="h-6 w-6 rounded-full object-cover mr-2"
+                              />
+                            ) : (
+                              <div className="h-6 w-6 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center mr-2">
+                                <UserIcon className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                            <p className="text-sm font-medium text-gray-900">
+                              {isReceived ? 'You received a request' : 'You sent a request'} from{' '}
+                              <span className="text-blue-600">{otherUser?.name || 'Unknown User'}</span>
+                            </p>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            <span className="text-green-600">{request.skillOffered}</span> for{' '}
+                            <span className="text-blue-600">{request.skillRequested}</span>
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(request.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                          request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          request.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                          request.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          request.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {request.status}
+                        </span>
                       </div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        request.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                        request.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {request.status}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
@@ -277,6 +383,18 @@ const DashboardPage: React.FC = () => {
                       </Link>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Recommendations Message */}
+            {!loading && allUsers.length > 0 && skillRecommendations.length === 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Skill Recommendations</h3>
+                <div className="text-center py-4 text-gray-500">
+                  <Users className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm">No specific recommendations yet</p>
+                  <p className="text-xs">Try browsing skills to find matches!</p>
                 </div>
               </div>
             )}

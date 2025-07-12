@@ -10,7 +10,6 @@ import ProfilePage from './pages/ProfilePage';
 import BrowseSkillsPage from './pages/BrowseSkillsPage';
 import SwapRequestsPage from './pages/SwapRequestsPage';
 import AdminPage from './pages/AdminPage';
-import DebugPage from './pages/DebugPage';
 
 // Demo data initialization
 const initializeDemoData = () => {
@@ -131,7 +130,6 @@ function App() {
             <Route path="/browse" element={<ProtectedRoute><BrowseSkillsPage /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><SwapRequestsPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-            <Route path="/debug" element={<ProtectedRoute><DebugPage /></ProtectedRoute>} />
           </Routes>
         </div>
       </Router>

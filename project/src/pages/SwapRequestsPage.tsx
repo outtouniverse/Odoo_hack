@@ -36,15 +36,11 @@ const SwapRequestsPage: React.FC = () => {
     setError(null);
     
     try {
-      console.log('Fetching swap requests and users...');
-      
       // Fetch swap requests
       const requests = await apiService.getSwaps();
-      console.log('Fetched swap requests:', requests);
       
       // Fetch users
       const allUsers = await apiService.getUsers();
-      console.log('Fetched users:', allUsers);
       
       // Process users to normalize data format
       const processedUsers = allUsers.map((u: any) => ({
@@ -71,38 +67,23 @@ const SwapRequestsPage: React.FC = () => {
         completedSwaps: u.completedSwaps || 0
       })) as User[];
       
-      // Process swap requests to match expected format (similar to admin page)
-      const processedRequests = requests.map((req: any) => {
-        console.log('Processing swap request:', req);
-        return {
-          ...req,
-          id: req._id || req.id,
-          fromUserId: req.fromUserId || req.fromUser?._id?.toString() || req.fromUser?.toString() || req.fromUser || 'Unknown',
-          toUserId: req.toUserId || req.toUser?._id?.toString() || req.toUser?.toString() || req.toUser || 'Unknown',
-          skillOffered: req.skillOffered || req.offeredSkill?.name || req.offeredSkill || 'Unknown Skill',
-          skillRequested: req.skillRequested || req.requestedSkill?.name || req.requestedSkill || 'Unknown Skill',
-          status: req.status || 'pending',
-          message: req.message || '',
-          createdAt: req.createdAt || new Date(),
-          updatedAt: req.updatedAt || new Date()
-        };
-      });
-      
-      console.log('Processed requests:', processedRequests);
-      console.log('Current user ID:', user?.id);
-      console.log('Sample processed request:', processedRequests[0]);
-      console.log('Sample processed user:', processedUsers[0]);
-      
-      // Debug: Check if any requests match the current user
-      const matchingRequests = processedRequests.filter(req => 
-        req.fromUserId === user?.id || req.toUserId === user?.id
-      );
-      console.log('Matching requests for current user:', matchingRequests);
+      // Process swap requests to match expected format
+      const processedRequests = requests.map((req: any) => ({
+        ...req,
+        id: req._id || req.id,
+        fromUserId: req.fromUserId || req.fromUser?._id?.toString() || req.fromUser?.toString() || req.fromUser || 'Unknown',
+        toUserId: req.toUserId || req.toUser?._id?.toString() || req.toUser?.toString() || req.toUser || 'Unknown',
+        skillOffered: req.skillOffered || req.offeredSkill?.name || req.offeredSkill || 'Unknown Skill',
+        skillRequested: req.skillRequested || req.requestedSkill?.name || req.requestedSkill || 'Unknown Skill',
+        status: req.status || 'pending',
+        message: req.message || '',
+        createdAt: req.createdAt || new Date(),
+        updatedAt: req.updatedAt || new Date()
+      }));
       
       setSwapRequests(processedRequests);
       setUsers(processedUsers);
     } catch (error: any) {
-      console.error('Failed to fetch data:', error);
       setError(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
@@ -114,37 +95,21 @@ const SwapRequestsPage: React.FC = () => {
   }, [user]);
 
   const getFilteredRequests = () => {
-    console.log('Filtering requests for user:', user?.id);
-    console.log('All swap requests:', swapRequests);
-    console.log('User object:', user);
+    if (!user?.id) {
+      return [];
+    }
     
     const userRequests = swapRequests.filter(req => {
-        const reqUserId = req.toUserId;
-        const fromUserId = req.fromUserId;
-        
-        console.log('Checking request:', {
-          reqUserId,
-          fromUserId,
-          userId: user?.id,
-          reqUserIdType: typeof reqUserId,
-          fromUserIdType: typeof fromUserId,
-          userIdType: typeof user?.id,
-          activeTab,
-          isReceived: reqUserId === user?.id,
-          isSent: fromUserId === user?.id,
-          reqUserIdStrict: reqUserId === user?.id,
-          fromUserIdStrict: fromUserId === user?.id
-        });
-        
+      const reqUserId = req.toUserId;
+      const fromUserId = req.fromUserId;
+      
       if (activeTab === 'received') {
-          return reqUserId === user?.id;
+        return reqUserId === user?.id;
       } else {
-          return fromUserId === user?.id;
+        return fromUserId === user?.id;
       }
     });
     
-    console.log('Filtered user requests:', userRequests);
-
     if (filterStatus === 'all') {
       return userRequests;
     }
@@ -155,22 +120,18 @@ const SwapRequestsPage: React.FC = () => {
   const updateRequestStatus = async (requestId: string, status: SwapRequest['status']) => {
     try {
       await apiService.updateSwap(requestId, { status });
-      // Refresh data after update
       await fetchData();
     } catch (error: any) {
-      console.error('Failed to update request status:', error);
-      alert(`Failed to update request: ${error.message}`);
+      setError(`Failed to update request: ${error.message}`);
     }
   };
 
   const deleteRequest = async (requestId: string) => {
     try {
       await apiService.deleteSwap(requestId);
-      // Refresh data after deletion
       await fetchData();
     } catch (error: any) {
-      console.error('Failed to delete request:', error);
-      alert(`Failed to delete request: ${error.message}`);
+      setError(`Failed to delete request: ${error.message}`);
     }
   };
 

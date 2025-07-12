@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { User, Mail, MapPin, Plus, X, Camera, Globe, Lock, Clock, Save, Upload } from 'lucide-react';
+import { User, Mail, MapPin, Plus, X, Globe, Lock, Clock, Save, Upload } from 'lucide-react';
 import SkillTag from '../components/SkillTag';
 import { apiService } from '../services/api';
 
@@ -170,7 +170,7 @@ const ProfilePage: React.FC = () => {
     if (newSkillOffered.trim() && !skillsOffered.some((skill: any) => skill.name === newSkillOffered.trim())) {
       try {
         // Create the skill in database
-        const skill = await apiService.createSkill({
+        await apiService.createSkill({
           name: newSkillOffered.trim(),
           description: `I can teach ${newSkillOffered.trim()}`,
           type: 'offered'
@@ -190,7 +190,7 @@ const ProfilePage: React.FC = () => {
     if (newSkillWanted.trim() && !skillsWanted.some((skill: any) => skill.name === newSkillWanted.trim())) {
       try {
         // Create the skill in database
-        const skill = await apiService.createSkill({
+        await apiService.createSkill({
           name: newSkillWanted.trim(),
           description: `I want to learn ${newSkillWanted.trim()}`,
           type: 'wanted'
@@ -340,11 +340,11 @@ const ProfilePage: React.FC = () => {
         if (Array.isArray(user.availability)) {
           setFormData(prev => ({
             ...prev,
-            availability: user.availability as unknown as string[]
+            availability: user.availability as string[]
           }));
         } else if (typeof user.availability === 'string') {
           // Handle legacy string format
-          const availabilityArray = user.availability.split(', ').filter((item: string) => item.trim() !== '');
+          const availabilityArray = (user.availability as string).split(', ').filter((item: string) => item.trim() !== '');
           setFormData(prev => ({
             ...prev,
             availability: availabilityArray

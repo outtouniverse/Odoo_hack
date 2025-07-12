@@ -9,4 +9,9 @@ const FeedbackSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Create indexes for better query performance
+FeedbackSchema.index({ swap: 1, fromUser: 1 }, { unique: true }); // One feedback per swap per user
+FeedbackSchema.index({ toUser: 1 }); // For finding all feedback for a user
+FeedbackSchema.index({ swap: 1 }); // For finding all feedback for a swap
+
 module.exports = mongoose.model('Feedback', FeedbackSchema); 

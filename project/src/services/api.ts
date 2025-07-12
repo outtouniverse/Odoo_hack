@@ -11,7 +11,7 @@ class ApiService {
     this.token = localStorage.getItem('token');
     this.api = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 15000, // Increased timeout
+      timeout: 150000, // Increased timeout
       headers: {
         'Content-Type': 'application/json',
       },
@@ -235,6 +235,39 @@ class ApiService {
     return this.request<void>(`/swaps/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Feedback endpoints
+  async getFeedbackForUser(userId: string) {
+    return this.request<any[]>(`/feedback/user/${userId}`);
+  }
+
+  async getFeedbackForSwap(swapId: string) {
+    return this.request<any[]>(`/feedback/swap/${swapId}`);
+  }
+
+  async createFeedback(feedbackData: any) {
+    return this.request<any>('/feedback', {
+      method: 'POST',
+      data: feedbackData,
+    });
+  }
+
+  async updateFeedback(id: string, feedbackData: any) {
+    return this.request<any>(`/feedback/${id}`, {
+      method: 'PUT',
+      data: feedbackData,
+    });
+  }
+
+  async deleteFeedback(id: string) {
+    return this.request<void>(`/feedback/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getFeedbackById(id: string) {
+    return this.request<any>(`/feedback/${id}`);
   }
 
   // Admin endpoints
